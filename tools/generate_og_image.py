@@ -1,9 +1,9 @@
 """Генерує og-image.png (1200x630) для соцмережевих прев'ю лендінгу.
 
-Логотип — точна копія brand-mark, який вже живе інлайн-SVG в index.html
-(viewBox 0 0 240 240, ті самі координати/кольори), відрендерена через Pillow
-(без залежності від cairosvg, якого нема в оточенні). Палітра й headline —
-з v7_true_redesign (style.css :root, hero h1 mobile-варіант).
+DES-5: navy-фон (var(--ink), як hero-card/cta-band на сайті) замість paper-
+градієнта, і реальне лого (assets/logo/antihaos-icon.svg) — монохромним
+золотом (арки+пік+крапка+прапорець), бо навігаційно-темний пік на navy-фоні
+був би невидимий.
 
 Запуск: python tools/generate_og_image.py
 Потребує: pip install Pillow (шрифти Inter лежать поруч у tools/fonts/).
@@ -17,12 +17,11 @@ OUT = ROOT / "og-image.png"
 FONTS = Path(__file__).resolve().parent / "fonts"
 
 W, H = 1200, 630
-PAPER = (247, 242, 232)      # --paper #F7F2E8
-PAPER2 = (255, 253, 248)     # --paper2 #FFFDF8
-NAVY = (11, 35, 65)          # --ink #0B2341
-GOLD = (197, 139, 43)        # --gold #C58B2B
+NAVY = (11, 35, 65)          # --ink #0B2341 (той самий navy, що hero-card/cta-band)
+GOLD = (217, 164, 65)        # #D9A441 — точний HEX реального лого (assets/logo/)
 
-# Точні шляхи brand-mark з index.html (viewBox 0 0 240 240).
+# Точні шляхи brand-mark з assets/logo/antihaos-icon.svg (viewBox 0 0 240 240).
+# На navy-фоні пік теж золотий (монохром) — навігаційно-темний був би невидимий.
 ARCS = [  # (x1, y1, x2, y2, r) — усі "A r r 0 0 0" (large-arc=0, sweep=0)
     (106, 42, 36, 118, 82),
     (46, 158, 100, 204, 82),
@@ -67,11 +66,11 @@ def draw_logo(canvas, ox, oy, scale):
         bbox = [bbox[0][0], bbox[0][1], bbox[1][0], bbox[1][1]]
         d.arc(bbox, min(a1, a2), max(a1, a2), fill=GOLD, width=max(2, round(10 * scale)))
 
-    d.line([tp(*p) for p in PEAK], fill=NAVY, width=max(3, round(16 * scale)), joint="curve")
+    d.line([tp(*p) for p in PEAK], fill=GOLD, width=max(3, round(16 * scale)), joint="curve")
     for p in PEAK:
         rjoin = max(3, round(16 * scale)) / 2
         cx, cy = tp(*p)
-        d.ellipse([cx - rjoin, cy - rjoin, cx + rjoin, cy + rjoin], fill=NAVY)
+        d.ellipse([cx - rjoin, cy - rjoin, cx + rjoin, cy + rjoin], fill=GOLD)
 
     cx, cy, r = DOT
     cx, cy = tp(cx, cy)
@@ -80,33 +79,24 @@ def draw_logo(canvas, ox, oy, scale):
     d.line([tp(*p) for p in FLAG], fill=GOLD, width=max(2, round(7 * scale)), joint="curve")
 
 
-def paper_gradient():
-    """Вертикальний градієнт paper2 -> paper, як body{background} в style.css."""
-    top = Image.new("RGB", (W, H), PAPER2)
-    bottom = Image.new("RGB", (W, H), PAPER)
-    mask = Image.new("L", (1, H))
-    for y in range(H):
-        mask.putpixel((0, y), round(255 * y / (H - 1)))
-    return Image.composite(bottom, top, mask.resize((W, H)))
-
-
 def main():
-    img = paper_gradient()
+    img = Image.new("RGB", (W, H), NAVY)
     draw_logo(img, 90, 78, 0.62)
 
     bold = ImageFont.truetype(str(FONTS / "Inter-Bold.ttf"), 30)
     semibold = ImageFont.truetype(str(FONTS / "Inter-SemiBold.ttf"), 26)
     headline_font = ImageFont.truetype(str(FONTS / "Inter-Bold.ttf"), 64)
 
+    WHITE = (255, 255, 255)
     d = ImageDraw.Draw(img)
-    d.text((240, 118), "Антихаос", font=bold, fill=NAVY)
+    d.text((240, 118), "Антихаос", font=bold, fill=WHITE)
     d.text((240, 158), "для Онлайн-Підприємця", font=semibold, fill=GOLD)
 
     eyebrow = "ДЛЯ ЕКСПЕРТІВ, ФРІЛАНСЕРІВ І АВТОРІВ ЦИФРОВИХ ПРОДУКТІВ"
     d.text((90, 300), eyebrow, font=semibold, fill=GOLD)
 
     line1, line2 = "Запусти цифровий продукт", "без хаосу"
-    d.text((90, 350), line1, font=headline_font, fill=NAVY)
+    d.text((90, 350), line1, font=headline_font, fill=WHITE)
     d.text((90, 350 + 78), line2, font=headline_font, fill=GOLD)
 
     rule_y = 350 + 78 + 90

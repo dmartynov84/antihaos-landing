@@ -68,13 +68,16 @@ a{text-decoration:none;color:inherit}
   font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
 }
 h1,h2,h3{margin:0;color:var(--ink);font-family:var(--font-display);letter-spacing:-.02em}
-h1{font-size:clamp(42px,6vw,76px);line-height:1.03;font-weight:700;margin:22px 0 18px;max-width:800px}
+h1{font-size:clamp(34px,5vw,58px);line-height:1.1;font-weight:700;margin:22px 0 10px;max-width:640px}
 h2{font-size:clamp(31px,4.2vw,54px);line-height:1.08;font-weight:700}
 h3{font-size:22px;line-height:1.18;font-weight:700}
 .gold{color:var(--gold)}
+.sub-lead{font-size:17px;color:var(--muted);margin:0 0 16px}
 .lead{font-size:19px;line-height:1.6;color:#44566D;margin:0 0 24px;max-width:720px}
 .lead strong{color:var(--ink)}
 .actions{display:flex;gap:14px;flex-wrap:wrap;margin:24px 0 14px}
+.text-link{display:inline-block;margin:0 0 14px;color:var(--ink2);font-weight:600;font-size:15px;border-bottom:1px solid var(--line)}
+.text-link:hover{color:var(--gold);border-color:var(--gold)}
 .micro{font-size:14px;color:var(--muted);margin:0}
 .hero-proof{display:flex;gap:12px;flex-wrap:wrap;margin-top:22px}
 .proof-pill{
@@ -212,7 +215,6 @@ details p{color:var(--muted)}
 .product-layout{display:grid;grid-template-columns:1fr .82fr;gap:42px;align-items:start}
 .breadcrumb{color:var(--gold);font-weight:700;margin-bottom:18px}
 .notice{margin-top:16px;background:#FAF7F1;border:1px solid var(--line);border-radius:var(--r-md);padding:15px;color:#6C5A3B}
-.mobile-only{display:none!important}
 @media(max-width:980px){
   .menu{display:none}
   .hero-grid,.proof-layout,.compliance,.product-layout{grid-template-columns:1fr}
@@ -233,7 +235,8 @@ details p{color:var(--muted)}
   .nav>.btn{display:none}
   .hero{padding:34px 0 30px}
   .eyebrow{font-size:10.5px;letter-spacing:.04em}
-  h1{font-size:35px;line-height:1.08;margin:18px 0 14px;letter-spacing:-.028em}
+  h1{line-height:1.1;margin:18px 0 8px;letter-spacing:-.028em}
+  .sub-lead{font-size:15.5px;margin:0 0 12px}
   h2{font-size:29px;line-height:1.12;letter-spacing:-.028em}
   h3{font-size:20px}
   .lead{font-size:16.2px;line-height:1.56}
@@ -255,8 +258,6 @@ details p{color:var(--muted)}
   .pro-no{margin-bottom:2px}
   .price{font-size:32px}
   .footer-grid{grid-template-columns:1fr}
-  .mobile-only{display:inline!important}
-  .desktop-only{display:none!important}
 }
 @media(max-width:360px){
   .container{width:min(100% - 28px,1160px)}

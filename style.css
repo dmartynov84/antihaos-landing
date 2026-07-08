@@ -134,6 +134,10 @@ h3{font-size:22px;line-height:1.18;font-weight:700}
 .route-node--done .route-label{color:#fff;font-weight:700}
 section{padding:70px 0}
 #inside,#proof,#lead-form{background:var(--paper2)}
+
+/* Стриманий scroll-reveal для секцій нижче hero (не signature-маршрут — той свій). */
+.js-reveal{opacity:0;transform:translateY(14px)}
+.js-reveal.is-revealed{transition:opacity 450ms var(--ease-out),transform 450ms var(--ease-out);opacity:1;transform:translateY(0)}
 .section-head{max-width:850px;margin:0 auto 34px;text-align:center}
 .section-head p{color:var(--muted);font-size:17px;margin:13px 0 0}
 .problem-strip{background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:32px 0}

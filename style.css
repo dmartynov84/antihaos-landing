@@ -95,23 +95,40 @@ h3{font-size:22px;line-height:1.18;font-weight:700}
 .hero-card{
   background:var(--ink);color:#fff;border-radius:var(--r-lg);padding:28px;box-shadow:var(--shadow);position:relative;overflow:hidden;
 }
-.hero-card:before{content:"";position:absolute;inset:auto -80px -90px auto;width:240px;height:240px;border-radius:50%;background:rgba(230,185,91,.18)}
 .score-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px;position:relative}
 .score-head strong{font-size:20px;color:#fff}
 .score-head span{border:1px solid rgba(255,255,255,.18);border-radius:var(--r-sm);padding:6px 10px;color:#C8D5E6;font-size:12px}
-.score-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;position:relative}
-.score{
-  background:rgba(255,255,255,.075);border:1px solid rgba(255,255,255,.12);border-radius:var(--r-md);padding:16px;
-}
-.score small{display:block;color:#BBC9DA;font-size:12px;margin-bottom:7px}
-.score b{display:block;color:#fff;font-family:var(--font-display);font-size:32px;line-height:1;letter-spacing:-.04em}
-.score em{display:block;color:#7CF0B3;font-size:12px;font-style:normal;margin-top:7px;font-weight:500}
-.score.warn em,.score.fix b,.score.fix em{color:var(--gold2)}
-.launch-path{
-  margin-top:14px;background:rgba(255,255,255,.075);border:1px solid rgba(255,255,255,.12);border-radius:var(--r-md);padding:16px;position:relative;
-}
-.path-row{display:flex;align-items:center;gap:8px;color:#DDE9F8;font-size:13px;flex-wrap:wrap}
-.path-row span{background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.12);border-radius:var(--r-sm);padding:7px 10px}
+
+/* Signature: маршрут "хаос -> система" (DES-4). Єдина помітна анімація сторінки. */
+.chaos-route{position:relative;padding:10px 4px 4px}
+.route-line{position:absolute;left:22px;right:22px;top:19px;height:4px}
+.route-line-svg{width:100%;height:100%;display:block;overflow:visible}
+.route-line-track{stroke:rgba(255,255,255,.16);stroke-width:2}
+.route-line-fill{stroke:var(--gold);stroke-width:2;stroke-dasharray:400;stroke-dashoffset:0}
+.chaos-route.js-animated .route-line-fill{stroke-dashoffset:400}
+.chaos-route.js-animated.is-visible .route-line-fill{transition:stroke-dashoffset 600ms var(--ease-out);stroke-dashoffset:0}
+
+.route-nodes{position:relative;display:flex;justify-content:space-between;gap:4px;padding-top:14px}
+.route-node{display:flex;flex-direction:column;align-items:center;gap:10px;flex:1;min-width:0;text-align:center}
+.chaos-route.js-animated .route-node{opacity:0;transform:translateY(10px)}
+.chaos-route.js-animated.is-visible .route-node{transition:opacity 420ms var(--ease-out),transform 420ms var(--ease-out);opacity:1;transform:translateY(0)}
+.chaos-route.js-animated.is-visible .route-node:nth-child(1){transition-delay:0ms}
+.chaos-route.js-animated.is-visible .route-node:nth-child(2){transition-delay:70ms}
+.chaos-route.js-animated.is-visible .route-node:nth-child(3){transition-delay:140ms}
+.chaos-route.js-animated.is-visible .route-node:nth-child(4){transition-delay:210ms}
+.chaos-route.js-animated.is-visible .route-node:nth-child(5){transition-delay:280ms}
+
+.route-dot-wrap{position:relative;width:22px;height:22px;display:grid;place-items:center;margin:0 auto}
+.route-dot{width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,.14);border:2px solid rgba(255,255,255,.4)}
+.route-label{font-size:12px;color:#BBC9DA;font-weight:500}
+
+.chaos-shard{position:absolute;width:5px;height:5px;background:rgba(255,255,255,.32);border-radius:1px}
+.chaos-shard--a{top:-8px;left:-7px;transform:rotate(20deg)}
+.chaos-shard--b{top:7px;left:-10px;transform:rotate(-26deg)}
+.chaos-shard--c{top:-5px;left:10px;transform:rotate(30deg)}
+
+.route-node--done .route-dot{width:20px;height:20px;background:var(--gold);border-color:var(--gold);box-shadow:0 0 0 6px rgba(197,139,43,.16)}
+.route-node--done .route-label{color:#fff;font-weight:700}
 section{padding:70px 0}
 .section-head{max-width:850px;margin:0 auto 34px;text-align:center}
 .section-head p{color:var(--muted);font-size:17px;margin:13px 0 0}
@@ -216,9 +233,10 @@ details p{color:var(--muted)}
   .btn{white-space:normal;text-align:center;width:100%}
   .actions{gap:10px}
   .hero-card{padding:20px}
-  .score-grid,.problem-grid,.steps,.assets,.compliance ul,.form-grid,.faq{grid-template-columns:1fr}
-  .score b{font-size:26px}
-  .path-row{display:grid;grid-template-columns:1fr}
+  .route-node{gap:6px}
+  .route-label{font-size:10.2px}
+  .route-line{left:16px;right:16px}
+  .problem-grid,.steps,.assets,.compliance ul,.form-grid,.faq{grid-template-columns:1fr}
   section{padding:52px 0}
   .section-head{text-align:left;margin-bottom:24px}
   .section-head p{font-size:16px}

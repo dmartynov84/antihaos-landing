@@ -126,7 +126,7 @@ h3{font-size:22px;line-height:1.18;font-weight:700}
 
 .route-dot-wrap{position:relative;width:22px;height:22px;display:grid;place-items:center;margin:0 auto}
 .route-dot{width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,.14);border:2px solid rgba(255,255,255,.4)}
-.route-label{font-size:12px;color:#BBC9DA;font-weight:500}
+.route-label{font-size:12px;color:#BBC9DA;font-weight:500;width:100%;overflow-wrap:break-word}
 
 .chaos-shard{position:absolute;width:5px;height:5px;background:rgba(255,255,255,.32);border-radius:1px}
 .chaos-shard--a{top:-8px;left:-7px;transform:rotate(20deg)}

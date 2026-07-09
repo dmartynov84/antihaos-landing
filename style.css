@@ -150,6 +150,10 @@ section{padding:70px 0}
 }
 .problem strong{display:block;color:var(--ink);font-size:18px;margin-bottom:6px}
 .problem p{margin:0;color:var(--muted)}
+.problem.verdict-go{border-left:3px solid var(--green)}
+.problem.verdict-fix{border-left:3px solid var(--gold)}
+.problem.verdict-stop{border-left:3px solid var(--red)}
+.problem.verdict-go strong,.problem.verdict-fix strong,.problem.verdict-stop strong{font-family:var(--font-display);letter-spacing:.04em}
 .steps{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
 .step{
   background:#fff;border:1px solid var(--line);border-radius:var(--r-lg);padding:20px;box-shadow:0 12px 34px rgba(11,35,65,.06);

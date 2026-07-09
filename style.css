@@ -203,7 +203,7 @@ section{padding:70px 0}
 }
 .file-row:hover,.pro-row:hover{border-color:rgba(197,139,43,.4)}
 .file-type{height:40px;border-radius:var(--r-sm);display:grid;place-items:center;color:#fff;font-size:12px;font-weight:700}
-.pdf{background:#D94D5C}.xlsx{background:#1CA66A}.docx{background:#2A77D4}
+.pdf{background:#A8434F}.xlsx{background:#2F7F52}.docx{background:#2E5A94}
 .file-row strong,.pro-row strong{display:block;color:var(--ink);line-height:1.25;font-weight:700;overflow-wrap:anywhere}
 .file-row small,.pro-row small{display:block;color:var(--muted);line-height:1.42;margin-top:4px;overflow-wrap:anywhere}
 .pro-row{grid-template-columns:48px minmax(0,1fr)}

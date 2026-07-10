@@ -80,14 +80,16 @@ h3{font-size:22px;line-height:1.18;font-weight:700}
 .text-link{display:inline-block;margin:0 0 14px;color:var(--ink2);font-weight:600;font-size:15px;border-bottom:1px solid var(--line)}
 .text-link:hover{color:var(--gold);border-color:var(--gold)}
 .micro{font-size:14px;color:var(--muted);margin:0}
-.hero-proof{display:flex;gap:12px;flex-wrap:wrap;margin-top:22px}
+.hero-proof{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px}
 .proof-pill{
-  display:flex;align-items:center;gap:9px;background:#fff;border:1px solid var(--line);border-radius:var(--r-pill);
-  padding:9px 12px;color:var(--ink2);font-size:14px;font-weight:500;
+  display:flex;align-items:center;gap:7px;background:#fff;border:1px solid var(--line);border-radius:var(--r-pill);
+  padding:6px 10px;color:var(--ink2);font-size:12.5px;font-weight:500;
 }
-.proof-pill span{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:#F2E4C9;color:var(--gold);font-weight:700}
+.proof-pill span{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;background:transparent;border:1.5px solid rgba(197,139,43,.4);color:var(--gold);font-weight:700;font-size:10px}
+.quick-form-wrap{margin-top:22px}
+.form-label{display:block;font-size:12px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--ink2);margin-bottom:8px}
 .quick-form{
-  margin-top:24px;background:#fff;border:1px solid var(--line);border-radius:var(--r-lg);padding:16px;box-shadow:var(--shadow);
+  background:#fff;border:1px solid var(--line);border-radius:var(--r-lg);padding:16px;box-shadow:var(--shadow);
   display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;
 }
 .trust-line{margin:10px 0 0;font-size:13px;color:var(--muted)}
@@ -107,6 +109,24 @@ h3{font-size:22px;line-height:1.18;font-weight:700}
 .score-head strong{font-size:20px;color:#fff}
 .score-head span{border:1px solid rgba(255,255,255,.18);border-radius:var(--r-sm);padding:6px 10px;color:#C8D5E6;font-size:12px}
 .score-sub{margin:0 0 18px;font-size:13px;color:#9FB0C6}
+
+/* Launch OS card (hero, index.html лише) — заміна decorative route-line на
+   змістовну картку-систему: 5 рядків + статус-бар. chaos-route/route-*
+   лишається недоторканим — той самий компонент ще живе на thank-you.html. */
+.os-rows{display:flex;flex-direction:column}
+.os-row{display:flex;gap:14px;align-items:flex-start;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+.os-row:first-child{padding-top:0}
+.os-row:last-child{padding-bottom:0;border-bottom:none}
+.os-no{flex:0 0 auto;width:32px;height:32px;border-radius:8px;border:1.5px solid var(--gold);color:var(--gold);display:grid;place-items:center;font-family:var(--font-display);font-weight:700;font-size:13px}
+.os-row strong{display:block;color:#fff;font-size:15px;font-weight:700;overflow-wrap:anywhere}
+.os-row small{display:block;color:#AEBBCE;font-size:12.5px;margin-top:2px;overflow-wrap:anywhere}
+.os-status{margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.14);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.os-status-label{font-size:12px;color:#9FB0C6;font-weight:600}
+.os-status-scale{display:flex;gap:6px}
+.os-tag{font-size:11px;font-weight:700;padding:4px 9px;border-radius:var(--r-pill);letter-spacing:.03em}
+.os-go{background:rgba(28,166,106,.18);color:#5CD69B}
+.os-fix{background:rgba(197,139,43,.2);color:var(--gold)}
+.os-stop{background:rgba(224,82,99,.18);color:#F2909D}
 
 /* Signature: маршрут "хаос -> система" (DES-4). Єдина помітна анімація сторінки. */
 .chaos-route{position:relative;padding:10px 4px 4px}
@@ -146,8 +166,7 @@ section{padding:70px 0}
 .js-reveal.is-revealed{transition:opacity 450ms var(--ease-out),transform 450ms var(--ease-out);opacity:1;transform:translateY(0)}
 .section-head{max-width:850px;margin:0 auto 34px;text-align:center}
 .section-head p{color:var(--muted);font-size:17px;margin:13px 0 0}
-.problem-strip{background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:32px 0}
-.problem-eyebrow{margin-bottom:16px}
+.problem-strip{background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:48px 0}
 /* SITE-1.12: легкий блок-впізнавання ICP одразу після hero — не дефініція,
    а перелік форматів, у яких людина впізнає свій продукт */
 .fit-strip{background:var(--paper2);border-bottom:1px solid var(--line);padding:26px 0}
@@ -157,8 +176,15 @@ section{padding:70px 0}
 .fit-formula{font-size:17px;color:var(--ink);font-weight:600;margin:0 0 6px}
 .fit-disclaimer{font-size:13px;color:var(--muted);margin:0}
 .problem-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+/* Executive-diagnosis картки: єдиний premium card style (як step/asset),
+   а не плоска paper-заливка — тонший border, легка тінь, більше повітря */
+.problem-label{display:inline-flex;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--gold);margin-bottom:10px}
 .problem{
-  background:#FAF7F1;border:1px solid var(--line);border-radius:var(--r-lg);padding:20px;
+  background:#fff;border:1px solid var(--line);border-radius:var(--r-lg);padding:26px;box-shadow:0 12px 34px rgba(11,35,65,.06);
+  transition:box-shadow .22s var(--ease-out),border-color .22s var(--ease-out),transform .22s var(--ease-out);
+}
+@media(hover:hover) and (pointer:fine){
+  .problem:hover{border-color:rgba(197,139,43,.4);box-shadow:0 16px 40px rgba(11,35,65,.10);transform:translateY(-2px)}
 }
 .problem strong{display:block;color:var(--ink);font-size:18px;margin-bottom:6px}
 .problem p{margin:0;color:var(--muted)}

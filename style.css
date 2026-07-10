@@ -186,18 +186,6 @@ section{padding:70px 0}
 .preview-card h3{font-size:17px;margin:0 0 6px}
 .preview-card .asset-type{margin-bottom:10px}
 .preview-card .text-link{margin-top:auto;padding-top:10px;font-size:14px}
-.sheet-preview{aspect-ratio:500/707;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden;margin-bottom:14px;background:#FAF7F1}
-.sheet-head{display:flex;background:var(--ink);padding:9px 10px;gap:8px;flex:0 0 auto}
-.sheet-head span{color:#fff;font-size:10px;font-weight:700;letter-spacing:.02em;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.sheet-row{flex:1;display:flex;align-items:center;gap:8px;padding:0 10px;border-top:1px solid var(--line)}
-.sheet-row:nth-child(odd){background:rgba(255,255,255,.5)}
-.sheet-line{display:block;height:7px;border-radius:4px;background:rgba(11,35,65,.14);flex:1}
-.sheet-line.w40{flex:.4}.sheet-line.w45{flex:.45}.sheet-line.w50{flex:.5}.sheet-line.w55{flex:.55}.sheet-line.w60{flex:.6}.sheet-line.w65{flex:.65}.sheet-line.w70{flex:.7}
-.doc-stack-preview{aspect-ratio:500/707;display:flex;flex-direction:column;justify-content:center;gap:10px;margin-bottom:14px;padding:16px;border:1px solid var(--line);border-radius:var(--r-md);background:#FAF7F1}
-.doc-chip{display:flex;align-items:center;gap:9px;background:#fff;border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 12px;font-size:13px;font-weight:600;color:var(--ink2)}
-.doc-icon{display:inline-block;width:14px;height:16px;flex:0 0 auto;border:1.5px solid var(--gold);border-radius:2px;position:relative}
-/* Загнутий кутик іконки документа: трикутник кольору фону поверх рамки */
-.doc-icon:before{content:"";position:absolute;top:0;right:0;width:5px;height:5px;background:var(--paper);border-bottom:1.5px solid var(--gold);border-left:1.5px solid var(--gold)}
 .pricing{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;align-items:stretch}
 /* Starter/Pro/VIP мають опис і фічі різної довжини — flex-column +
    min-height на описі вирівнює ціну по одній лінії, margin-top:auto

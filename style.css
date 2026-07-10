@@ -148,6 +148,14 @@ section{padding:70px 0}
 .section-head p{color:var(--muted);font-size:17px;margin:13px 0 0}
 .problem-strip{background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:32px 0}
 .problem-eyebrow{margin-bottom:16px}
+/* SITE-1.12: легкий блок-впізнавання ICP одразу після hero — не дефініція,
+   а перелік форматів, у яких людина впізнає свій продукт */
+.fit-strip{background:var(--paper2);border-bottom:1px solid var(--line);padding:26px 0}
+.fit-eyebrow{margin-bottom:14px}
+.fit-chips{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px}
+.fit-chip{display:inline-flex;align-items:center;background:#fff;border:1px solid var(--line);border-radius:var(--r-pill);padding:9px 14px;color:var(--ink2);font-size:14px;font-weight:600}
+.fit-formula{font-size:17px;color:var(--ink);font-weight:600;margin:0 0 6px}
+.fit-disclaimer{font-size:13px;color:var(--muted);margin:0}
 .problem-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
 .problem{
   background:#FAF7F1;border:1px solid var(--line);border-radius:var(--r-lg);padding:20px;

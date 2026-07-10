@@ -103,9 +103,10 @@ h3{font-size:22px;line-height:1.18;font-weight:700}
 .hero-card{
   background:var(--ink);color:#fff;border-radius:var(--r-lg);padding:28px;box-shadow:var(--shadow);position:relative;overflow:hidden;
 }
-.score-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px;position:relative}
+.score-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:6px;position:relative}
 .score-head strong{font-size:20px;color:#fff}
 .score-head span{border:1px solid rgba(255,255,255,.18);border-radius:var(--r-sm);padding:6px 10px;color:#C8D5E6;font-size:12px}
+.score-sub{margin:0 0 18px;font-size:13px;color:#9FB0C6}
 
 /* Signature: маршрут "хаос -> система" (DES-4). Єдина помітна анімація сторінки. */
 .chaos-route{position:relative;padding:10px 4px 4px}
@@ -157,18 +158,25 @@ section{padding:70px 0}
 .problem.verdict-fix{border-left:3px solid var(--gold)}
 .problem.verdict-stop{border-left:3px solid var(--red)}
 .problem.verdict-go strong,.problem.verdict-fix strong,.problem.verdict-stop strong{font-family:var(--font-display);letter-spacing:.04em}
-.steps{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+/* Тонка лінія маршруту за номерами кроків — щоб 5 карток читались як
+   послідовна методологія, а не як 5 не пов'язаних білих блоків */
+.steps{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;position:relative}
+.steps:before{content:"";position:absolute;top:41px;left:10%;right:10%;height:2px;background:linear-gradient(90deg,var(--gold),var(--line) 85%);z-index:0}
 .step{
-  background:#fff;border:1px solid var(--line);border-radius:var(--r-lg);padding:20px;box-shadow:0 12px 34px rgba(11,35,65,.06);
+  background:#fff;border:1px solid var(--line);border-radius:var(--r-lg);padding:20px;box-shadow:0 12px 34px rgba(11,35,65,.06);position:relative;z-index:1;
 }
-.num{width:42px;height:42px;border-radius:var(--r-sm);background:var(--ink);color:#fff;display:grid;place-items:center;font-family:var(--font-display);font-weight:700;margin-bottom:15px}
+.num{width:42px;height:42px;border-radius:var(--r-sm);background:var(--ink);color:#fff;display:grid;place-items:center;font-family:var(--font-display);font-weight:700;margin-bottom:15px;box-shadow:0 0 0 3px rgba(197,139,43,.18)}
 .step-outcome{color:var(--gold)!important;font-size:13px;font-weight:600;margin-top:8px!important;padding-top:8px;border-top:1px solid var(--line)}
 .step p,.asset p,.price-card p,.proof-card p{color:var(--muted);margin:7px 0 0}
 #inside .section-head{margin-bottom:40px}
 .assets{display:grid;grid-template-columns:repeat(5,1fr);gap:18px}
 .asset{background:#fff;border:1px solid var(--line);border-radius:var(--r-lg);padding:22px;box-shadow:0 12px 34px rgba(11,35,65,.06);display:flex;flex-direction:column}
-.step,.asset,.proof-card,.price-card,.file-row,.pro-row{transition:box-shadow .22s var(--ease-out),border-color .22s var(--ease-out)}
-.step:hover,.asset:hover{border-color:rgba(197,139,43,.4);box-shadow:0 16px 40px rgba(11,35,65,.10)}
+.step,.asset,.proof-card,.price-card,.file-row,.pro-row{transition:box-shadow .22s var(--ease-out),border-color .22s var(--ease-out),transform .22s var(--ease-out)}
+/* Depth-hover лише на пристроях з реальним ховером — на дотику не має
+   лишатись "залипле" підняте положення картки після тапу */
+@media(hover:hover) and (pointer:fine){
+  .step:hover,.asset:hover{border-color:rgba(197,139,43,.4);box-shadow:0 16px 40px rgba(11,35,65,.10);transform:translateY(-2px)}
+}
 .asset h3{font-size:20px;margin:0 0 8px}
 .asset-type{display:inline-flex;align-self:flex-start;border-radius:var(--r-sm);padding:3px 8px;background:transparent;border:1px solid var(--line);color:var(--ink2);font-size:10.5px;font-weight:700;letter-spacing:.03em;margin-bottom:8px}
 .cta-band{
@@ -180,8 +188,10 @@ section{padding:70px 0}
 
 /* Product-preview: реальні обкладинки файлів (чесне прев'ю, не fake dashboard). */
 .preview-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:18px}
-.preview-card{background:#fff;border:1px solid var(--line);border-radius:var(--r-lg);padding:18px;box-shadow:0 12px 34px rgba(11,35,65,.06);display:flex;flex-direction:column;transition:box-shadow .22s var(--ease-out),border-color .22s var(--ease-out)}
-.preview-card:hover{border-color:rgba(197,139,43,.4);box-shadow:0 16px 40px rgba(11,35,65,.10)}
+.preview-card{background:#fff;border:1px solid var(--line);border-radius:var(--r-lg);padding:18px;box-shadow:0 12px 34px rgba(11,35,65,.06);display:flex;flex-direction:column;transition:box-shadow .22s var(--ease-out),border-color .22s var(--ease-out),transform .22s var(--ease-out)}
+@media(hover:hover) and (pointer:fine){
+  .preview-card:hover{border-color:rgba(197,139,43,.4);box-shadow:0 16px 40px rgba(11,35,65,.10);transform:translateY(-2px)}
+}
 .preview-card-img{width:100%;height:auto;aspect-ratio:500/707;object-fit:cover;object-position:top;border-radius:var(--r-md);border:1px solid var(--line);margin-bottom:14px}
 .preview-card h3{font-size:17px;margin:0 0 6px}
 .preview-card .asset-type{margin-bottom:10px}
@@ -196,8 +206,10 @@ section{padding:70px 0}
 }
 .price-card>p:first-of-type{min-height:50px}
 .price-card.featured{border-color:rgba(197,139,43,.55);box-shadow:0 22px 70px rgba(197,139,43,.16)}
-.price-card:hover{border-color:rgba(197,139,43,.4);box-shadow:0 14px 34px rgba(11,35,65,.09)}
-.price-card.featured:hover{box-shadow:0 26px 78px rgba(197,139,43,.2)}
+@media(hover:hover) and (pointer:fine){
+  .price-card:hover{border-color:rgba(197,139,43,.4);box-shadow:0 14px 34px rgba(11,35,65,.09);transform:translateY(-2px)}
+  .price-card.featured:hover{box-shadow:0 26px 78px rgba(197,139,43,.2)}
+}
 .label{
   position:absolute;top:-14px;left:50%;transform:translateX(-50%);
   background:linear-gradient(135deg,var(--gold2),var(--gold));color:#241806;border-radius:var(--r-sm);padding:7px 14px;font-size:12px;font-weight:700;
@@ -210,7 +222,9 @@ section{padding:70px 0}
 .price-card .btn{width:100%;margin-top:auto}
 .proof-layout{display:grid;grid-template-columns:1.05fr .95fr;gap:18px}
 .proof-card{background:#fff;border:1px solid var(--line);border-radius:var(--r-lg);padding:28px;box-shadow:0 18px 45px rgba(11,35,65,.08)}
-.proof-card:hover{box-shadow:0 22px 54px rgba(11,35,65,.11)}
+@media(hover:hover) and (pointer:fine){
+  .proof-card:hover{box-shadow:0 22px 54px rgba(11,35,65,.11);transform:translateY(-2px)}
+}
 .proof-label{display:inline-flex;border-radius:var(--r-sm);padding:7px 11px;background:#E9F3FF;color:#235B9E;font-size:12px;font-weight:700;margin-bottom:14px}
 .proof-label.gold-label{background:#F2E4C9;color:#7B5418}
 .file-list,.pro-list{display:grid;gap:12px;margin-top:18px}
@@ -274,15 +288,21 @@ details p{color:var(--muted)}
   .btn{white-space:normal;text-align:center;width:100%}
   .actions{gap:10px}
   .hero-card{padding:20px}
-  .route-node{gap:6px}
-  .route-label{font-size:10.2px}
-  .route-line{left:16px;right:16px}
+  /* На вузьких екранах горизонтальний маршрут стискає підписи до переносу
+     всередині слова ("Автоматиза"/"ція") — переводимо на вертикальний
+     список: крапка+підпис в один рядок, підпису лишається повна ширина */
+  .route-line{display:none}
+  .route-nodes{flex-direction:column;align-items:stretch;gap:12px;padding-top:2px}
+  .route-node{flex-direction:row;align-items:center;gap:12px;text-align:left}
+  .route-dot-wrap{margin:0}
+  .route-label{font-size:13px;width:auto;white-space:nowrap}
   .problem-grid,.steps,.assets,.preview-grid,.compliance ul,.form-grid,.faq{grid-template-columns:1fr}
   section{padding:52px 0}
   .section-head{text-align:left;margin-bottom:24px}
   .section-head p{font-size:16px}
   .problem-strip{padding:26px 0}
   .asset,.step,.price-card,.proof-card,.form-box,.compliance{padding:22px}
+  .steps:before{display:none}
   .file-row{grid-template-columns:1fr}
   .file-type{width:max-content;min-width:58px;padding:0 10px}
   .pro-row{grid-template-columns:1fr}

@@ -394,10 +394,10 @@ button.problem:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 .pd-package a{font-weight:700;color:var(--gold);border-bottom:1px solid transparent}
 .pd-package a:hover{border-color:var(--gold)}
 
-/* Футер-навлінки (Starter/Pro/VIP/Privacy/Refund): ~24px висотою —
-   нижче 44px WCAG AAA touch target. Додаємо вертикальний padding, не
-   чіпаючи розмір/вагу тексту. */
-.footer-links a{padding:9px 3px;display:inline-block}
+/* Футер-навлінки (Starter/Pro/VIP/Privacy/Refund): були ~24px висотою —
+   нижче 44px WCAG AAA touch target. padding:9px давав ~42.8px (LEGAL
+   COPY FINALIZATION цикл: Дизайнер довів до формального порогу 44px). */
+.footer-links a{padding:10px 3px;display:inline-block}
 
 /* SITE-1.14: модалка кроку (native <dialog>). transform-origin лишається
    center — на відміну від popover-ів, модалка не прив'язана до тригера,

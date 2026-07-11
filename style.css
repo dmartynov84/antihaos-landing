@@ -199,8 +199,24 @@ section{padding:70px 0}
 .step{
   background:#fff;border:1px solid var(--line);border-radius:var(--r-lg);padding:20px;box-shadow:0 12px 34px rgba(11,35,65,.06);position:relative;z-index:1;
 }
+/* SITE-1.13: картка клікабельна (button-скидання через all:unset), клік
+   розкриває step-detail через grid-template-rows 0fr->1fr — сучасний
+   спосіб анімувати "невідому висоту" без max-height-хаку. */
+.step-trigger{all:unset;display:block;width:100%;cursor:pointer;box-sizing:border-box}
+.step-trigger:focus-visible{outline:2px solid var(--gold);outline-offset:3px;border-radius:var(--r-sm)}
 .num{width:42px;height:42px;border-radius:var(--r-sm);background:var(--ink);color:#fff;display:grid;place-items:center;font-family:var(--font-display);font-weight:700;margin-bottom:15px;box-shadow:0 0 0 3px rgba(197,139,43,.18)}
 .step-outcome{color:var(--gold)!important;font-size:13px;font-weight:600;margin-top:8px!important;padding-top:8px;border-top:1px solid var(--line)}
+.step-chevron{display:block;margin-top:12px;font-size:12px;font-weight:700;color:var(--gold);letter-spacing:.02em}
+.step-chevron:after{content:"Показати деталі ↓"}
+.step.is-open .step-chevron:after{content:"Згорнути ↑"}
+.step-detail{display:grid;grid-template-rows:0fr;transition:grid-template-rows 280ms var(--ease-out)}
+.step-detail-inner{overflow:hidden;opacity:0;transition:opacity 200ms var(--ease-out)}
+.step-detail-inner p{padding-top:12px;margin-top:10px!important;border-top:1px solid var(--line);color:var(--ink2)!important;font-size:14px;line-height:1.5}
+.step.is-open .step-detail{grid-template-rows:1fr}
+.step.is-open .step-detail-inner{opacity:1;transition-delay:70ms}
+@media(prefers-reduced-motion:reduce){
+  .step-detail,.step-detail-inner{transition:none}
+}
 .step p,.asset p,.price-card p,.proof-card p{color:var(--muted);margin:7px 0 0}
 #inside .section-head{margin-bottom:40px}
 .assets{display:grid;grid-template-columns:repeat(5,1fr);gap:18px}

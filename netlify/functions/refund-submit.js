@@ -12,7 +12,7 @@ const { newCorrelationId } = require("./_lib/ids");
 const { log } = require("./_lib/logger");
 const { appendEvent, sha256 } = require("./_lib/events");
 const { createWorkflowStatus, markCompleted } = require("./_lib/workflow-status");
-const { resolvePublicId } = require("./_lib/request-dedup");
+const { resolvePublicId, isValidClientRequestId } = require("./_lib/request-dedup");
 const { normalizeEmail } = require("./_lib/adapters/crm");
 const { getOrder } = require("./_lib/store");
 const { getAutomationModes } = require("./_lib/automation-mode");
@@ -39,7 +39,7 @@ exports.handler = withBlobs(async (event) => {
     return { statusCode: 400, body: JSON.stringify({ error: "invalid_json" }) };
   }
 
-  const { email: rawEmail, orderId, reason, description } = payload;
+  const { email: rawEmail, orderId, reason, description, clientRequestId } = payload;
   if (!rawEmail || !String(rawEmail).includes("@")) {
     return { statusCode: 400, body: JSON.stringify({ error: "invalid_email" }) };
   }
@@ -62,8 +62,10 @@ exports.handler = withBlobs(async (event) => {
   }
 
   const correlationId = newCorrelationId("refund");
-  const timeBucket = Math.floor(Date.now() / (DEDUP_WINDOW_MINUTES * 60 * 1000));
-  const dedupKey = sha256(`${email}|${orderId}|${reason}|${timeBucket}`);
+  // client_request_id -- див. support-submit.js для повного пояснення.
+  const dedupKey = isValidClientRequestId(clientRequestId)
+    ? sha256(`client:refund:${clientRequestId}`)
+    : sha256(`${email}|${orderId}|${reason}|${Math.floor(Date.now() / (DEDUP_WINDOW_MINUTES * 60 * 1000))}`);
   const { publicId: requestId, isNew } = await resolvePublicId("refund", dedupKey);
 
   if (!isNew) {

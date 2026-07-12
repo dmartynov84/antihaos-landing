@@ -24,4 +24,13 @@ async function resolvePublicId(namespace, dedupKey) {
   return { publicId, isNew: true };
 }
 
-module.exports = { resolvePublicId };
+// client_request_id: клієнт генерує crypto.randomUUID() один раз і
+// повторно шле той самий рядок при retry/reload того самого подання
+// (localStorage). Приймаємо лише формат, схожий на UUID/непрозорий
+// токен розумної довжини -- не довільний контент, щоб не перетворити
+// це на ще один вектор для непередбачуваних ключів у Blobs.
+function isValidClientRequestId(value) {
+  return typeof value === "string" && /^[a-zA-Z0-9_-]{8,100}$/.test(value);
+}
+
+module.exports = { resolvePublicId, isValidClientRequestId };

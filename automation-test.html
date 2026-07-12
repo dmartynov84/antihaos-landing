@@ -107,6 +107,17 @@
   var lastRefundId = localStorage.getItem('at_refund_id');
   var lastVipId = localStorage.getItem('at_vip_id');
 
+  // client_request_id: генерується один раз на форму, лишається в
+  // localStorage і надсилається повторно на кожен submit цієї ж форми в
+  // цій вкладці -- саме "стабільний ID при retry/reload", не новий на
+  // кожен клік. Не усуває дублі (нова вкладка/пристрій/очищене сховище
+  // дають новий ID), лише знижує їх -- див. docs/automation/consistency-contracts.md.
+  function getOrCreateClientRequestId(storageKey) {
+    var id = localStorage.getItem(storageKey);
+    if (!id) { id = crypto.randomUUID().replace(/-/g, ''); localStorage.setItem(storageKey, id); }
+    return id;
+  }
+
   document.getElementById('supportForm').addEventListener('submit', function (e) {
     e.preventDefault();
     var msg = document.getElementById('s-msg');
@@ -114,6 +125,7 @@
       email: document.getElementById('s-email').value,
       category: document.getElementById('s-category').value,
       description: document.getElementById('s-desc').value,
+      clientRequestId: getOrCreateClientRequestId('at_support_client_request_id'),
     }).then(function (res) {
       show(msg, JSON.stringify(res.d, null, 2), res.ok);
       if (res.d && res.d.requestId) { lastSupportId = res.d.requestId; localStorage.setItem('at_support_id', lastSupportId); }
@@ -135,6 +147,7 @@
       orderId: document.getElementById('r-orderid').value,
       reason: document.getElementById('r-reason').value,
       description: document.getElementById('r-desc').value,
+      clientRequestId: getOrCreateClientRequestId('at_refund_client_request_id'),
     }).then(function (res) {
       show(msg, JSON.stringify(res.d, null, 2), res.ok);
       if (res.d && res.d.requestId) { lastRefundId = res.d.requestId; localStorage.setItem('at_refund_id', lastRefundId); }

@@ -1,20 +1,24 @@
 // GET /.netlify/functions/crm-lookup?email=...
-// Внутрішній debug-endpoint, ЛИШЕ для перевірки цього циклу — дозволяє
-// підтвердити, що submission-created.js справді записав контакт у mock
-// CRM, а не просто повернув 200 без реальної дії (той самий клас
-// перевірки, що order-status.js дає для checkout-контуру). Читає лише
-// mock-дані (Netlify Blobs), жодних реальних платіжних чи карткових
-// даних тут немає за конструкцією.
+// Internal-only debug endpoint. CRITICAL fix (Automation Operations
+// cycle): цей endpoint був публічно доступний без жодної автентифікації
+// й повертав повний PII-запис (email, ім'я, UTM, consent, stage) для
+// БУДЬ-ЯКОГО вгаданого email — підтверджено живою експлуатацією curl-ом
+// перед фіксом. Тепер вимагає X-Admin-Token header, fail-closed без
+// ADMIN_TOKEN на Netlify.
 "use strict";
 
 const { getAutomationModes } = require("./_lib/automation-mode");
 const crm = require("./_lib/adapters/crm");
 const { withBlobs } = require("./_lib/with-blobs");
+const { requireAdmin } = require("./_lib/admin-auth");
 
 exports.handler = withBlobs(async (event) => {
   if (event.httpMethod !== "GET") {
     return { statusCode: 405, body: JSON.stringify({ error: "method_not_allowed" }) };
   }
+  const denied = requireAdmin(event);
+  if (denied) return denied;
+
   const modes = getAutomationModes();
   if (modes.crm === "disabled") {
     return { statusCode: 503, body: JSON.stringify({ error: "crm_disabled", mode: modes.crm }) };

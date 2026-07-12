@@ -67,4 +67,21 @@ function sha256(text) {
   return crypto.createHash("sha256").update(text).digest("hex").slice(0, 24);
 }
 
-module.exports = { appendEvent, listEvents, sha256, SCHEMA_VERSION };
+// Повний скан усіх entityId даного типу -- потрібен операційним
+// інструментам (duplicate reconciliation, projection audit, ops-звіт),
+// які не можуть знати наперед конкретний entityId. НЕ призначено для
+// шляхів обробки одиночного request/response (там завжди відомий
+// entityId) -- лише для authenticated batch-операцій.
+async function listEntityIds(entityType) {
+  const store = eventsStore();
+  const { blobs } = await store.list({ prefix: `${entityType}:` });
+  const ids = new Set();
+  for (const b of blobs) {
+    const rest = b.key.slice(entityType.length + 1);
+    const entityId = rest.split("::")[0];
+    ids.add(entityId);
+  }
+  return [...ids];
+}
+
+module.exports = { appendEvent, listEvents, listEntityIds, sha256, SCHEMA_VERSION };

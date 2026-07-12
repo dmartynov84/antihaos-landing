@@ -101,8 +101,21 @@ async function markCancelled(workflowId, reasonCode) {
   return transition(workflowId, { status: "cancelled", lastErrorCode: reasonCode || null });
 }
 
+// Повний скан для операційних інструментів (ops-звіт, dead-letter list,
+// stale-detection) -- один forEach по всьому стору, прийнятно для
+// поточного обсягу (mock/sandbox workflows, не мільйони записів
+// production checkout). Якщо обсяг колись стане проблемою, перше, що
+// зробити -- пагінація тут, а не десь у викликачів.
+async function listAllWorkflows() {
+  const store = workflowStore();
+  const { blobs } = await store.list();
+  const records = await Promise.all(blobs.map((b) => store.get(b.key, { type: "json" })));
+  return records.filter(Boolean);
+}
+
 module.exports = {
   MAX_RETRIES, isRetryable,
   createWorkflowStatus, getWorkflowStatus,
   markProcessing, markCompleted, markFailure, markManuallyReplayed, markCancelled,
+  listAllWorkflows,
 };

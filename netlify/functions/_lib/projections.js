@@ -6,7 +6,7 @@
 "use strict";
 
 const { getStore } = require("@netlify/blobs");
-const { listEvents } = require("./events");
+const { listEvents, listEntityIds, SCHEMA_VERSION } = require("./events");
 const { getWithRetry } = require("./conditional-write");
 
 function contactProjectionStore() {
@@ -67,4 +67,41 @@ async function getContactProjection(email) {
   return getWithRetry(contactProjectionStore(), email);
 }
 
-module.exports = { projectContact, rebuildContactProjection, getContactProjection };
+// Аудит: чи кешований projection відповідає тому, що дало б перерахування
+// з нуля ЗАРАЗ. НЕ пише нічого -- чисте порівняння, для ops-projections-
+// audit.js (check/dry-run режими перед фактичним rebuild).
+// fail_loud_unknown_schema: якщо хоч одна подія цього контакту має
+// schema_version, відмінний від того, який projectContact() уміє
+// обробляти -- явно повідомляємо про це, а не мовчки згортаємо як умієм.
+async function auditContactProjection(email) {
+  const events = await listEvents("contact", email);
+  const unknownSchemaEvents = events.filter((e) => e.schema_version !== SCHEMA_VERSION);
+  if (unknownSchemaEvents.length) {
+    return {
+      email, status: "unknown_schema_version",
+      unknownVersions: [...new Set(unknownSchemaEvents.map((e) => e.schema_version))],
+    };
+  }
+  const cached = await getContactProjection(email);
+  const fresh = projectContact(events);
+  const cachedLastEventId = cached ? cached.lastEventId : null;
+  const freshLastEventId = fresh ? fresh.lastEventId : null;
+  const matches = cachedLastEventId === freshLastEventId;
+  return {
+    email,
+    status: matches ? "in_sync" : "drift_detected",
+    cachedLastEventId,
+    freshLastEventId,
+    cachedStage: cached ? cached.stage : null,
+    freshStage: fresh ? fresh.stage : null,
+  };
+}
+
+async function listAllContactEmails() {
+  return listEntityIds("contact");
+}
+
+module.exports = {
+  projectContact, rebuildContactProjection, getContactProjection,
+  auditContactProjection, listAllContactEmails,
+};

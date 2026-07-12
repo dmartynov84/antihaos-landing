@@ -51,8 +51,8 @@
 | Source of truth | `automation-events`, `entity_type: support_request` |
 | Read/write model | Append-only create; статус — окремий event append, не update |
 | Consistency | Eventual |
-| Duplicate tolerance | Best-effort — 10-хвилинне вікно дедуплікації за `sha256(email|category|messageHash|timeBucket)`, ПЕРЕВІРЕНО минулого циклу: з реалістичним 3-секундним інтервалом дедуп **не спрацював** (read-lag на самій dedup-перевірці) |
-| Idempotency guarantee | **best-effort dedup, НЕ гарантія** — задокументована, невиправлена (митигацію consistency:"strong" відхилено, §ADR 1.2). Клієнтський `client_request_id` (§цей цикл) додатково знижує ризик дублю з того самого браузера/сесії, але не усуває його повністю для двох окремих вкладок/пристроїв |
+| Duplicate tolerance | Best-effort. Два механізми: (1) 10-хвилинне вікно за контентним хешем `sha256(email|category|messageHash|timeBucket)` — fallback, коли клієнт не передав ID; (2) `client_request_id` — стабільний ID з localStorage, коли клієнт передав |
+| Idempotency guarantee | **best-effort dedup, НЕ гарантія** — виміряно живим тестом цього циклу з `client_request_id`: два submit **впритул** (без паузи) → dedup НЕ спрацював (два різні `requestId`, обидва `duplicate:false` — той самий read-lag на dedup-перевірці, що й контентний хеш); той самий `client_request_id` через **25с паузу** → dedup СПРАЦЮВАВ коректно (той самий `requestId`, `duplicate:true`). Практичний висновок: захищає від "користувач перезавантажив сторінку й надіслав ще раз через хвилину", НЕ захищає від "подвійний клік" чи "два паралельні submit з тієї самої вкладки". Реальний захист від псевдо-одночасних дублів — постфактум-реконсиляція (нижче), не синхронний dedup |
 | Retry guarantee | at-least-once (форма може бути надіслана повторно вручну користувачем) |
 | Ordering | Не критично — кожен request незалежний |
 | Recovery | Duplicate reconciliation (§цей цикл): `suspected_duplicate` → ручний merge, не автоматичний |

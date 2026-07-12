@@ -25,6 +25,16 @@ function isRetryable(reasonCode) {
   return RETRYABLE_REASON_CODES.has(reasonCode);
 }
 
+// Витягнуто в чисті функції для unit-тестів (node:test, без Blobs) --
+// markFailure нижче лише викликає їх і записує результат.
+function shouldDeadLetter(reasonCode, retryCount) {
+  return !isRetryable(reasonCode) || retryCount > MAX_RETRIES;
+}
+
+function computeBackoffSeconds(retryCount) {
+  return BASE_BACKOFF_SECONDS * Math.pow(2, retryCount - 1);
+}
+
 function workflowStore() {
   return getStore("workflow-status");
 }
@@ -71,10 +81,9 @@ async function markCompleted(workflowId) {
 async function markFailure(workflowId, reasonCode) {
   const current = await getWorkflowStatus(workflowId);
   if (!current) return null;
-  const retryable = isRetryable(reasonCode);
   const retryCount = current.retryCount + 1;
 
-  if (!retryable || retryCount > MAX_RETRIES) {
+  if (shouldDeadLetter(reasonCode, retryCount)) {
     return transition(workflowId, {
       status: "dead_letter",
       retryCount,
@@ -83,7 +92,7 @@ async function markFailure(workflowId, reasonCode) {
     });
   }
 
-  const backoffSeconds = BASE_BACKOFF_SECONDS * Math.pow(2, retryCount - 1);
+  const backoffSeconds = computeBackoffSeconds(retryCount);
   const nextRetryAt = new Date(Date.now() + backoffSeconds * 1000).toISOString();
   return transition(workflowId, {
     status: "retry_scheduled",
@@ -114,7 +123,7 @@ async function listAllWorkflows() {
 }
 
 module.exports = {
-  MAX_RETRIES, isRetryable,
+  MAX_RETRIES, BASE_BACKOFF_SECONDS, isRetryable, shouldDeadLetter, computeBackoffSeconds,
   createWorkflowStatus, getWorkflowStatus,
   markProcessing, markCompleted, markFailure, markManuallyReplayed, markCancelled,
   listAllWorkflows,

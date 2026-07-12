@@ -26,6 +26,63 @@ jobs:
             node --check "$f"
           done
 
+  unit-tests:
+    # OWNER OPERATIONS FINAL HARDENING цикл: реальні виконувані тести для
+    # чистої логіки (state machines, retry/backoff, dedup fingerprint,
+    # PII masking, projection fold) через вбудований node:test -- нуль
+    # нових залежностей. Це логіка, яку ЖОДЕН попередній цикл не
+    # запускав насправді (лише читав очима) -- локальна машина розробки
+    # не має Node взагалі, тому CI тут -- єдиний реальний виконавець.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: node --test on pure _lib logic
+        run: node --test netlify/functions/_lib/__tests__/
+
+  forced-failure-self-test:
+    # Rada §24: довести, що аудит-gates РЕАЛЬНО падають на реальну
+    # проблему, не лише формально існують. Тимчасово псує repo-копію в
+    # runner (не в реальному коді, не комітиться), запускає аудит,
+    # ПЕРЕВІРЯЄ ненульовий exit code, тоді відкочує й перевіряє чистий
+    # стан. Якщо forced-failure НЕ падає -- сам цей job падає (реальний
+    # regression-гард на самі гейти, не декоративний).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: prove admin-endpoints audit catches a missing requireAdmin call
+        run: |
+          set -e
+          cp netlify/functions/crm-lookup.js /tmp/crm-lookup-backup.js
+          sed -i 's/requireAdmin(/DISABLED_requireAdmin(/' netlify/functions/crm-lookup.js
+          if python3 tools/audit_cli.py admin-endpoints; then
+            echo "FAIL: audit did not catch the simulated regression"
+            exit 1
+          fi
+          echo "OK: audit correctly failed on simulated regression"
+          cp /tmp/crm-lookup-backup.js netlify/functions/crm-lookup.js
+          python3 tools/audit_cli.py admin-endpoints
+      - name: prove live-flags audit catches a flipped CHECKOUT_MODE default
+        run: |
+          set -e
+          cp netlify/functions/_lib/mode.js /tmp/mode-backup.js
+          sed -i 's/"disabled"/"live"/' netlify/functions/_lib/mode.js
+          if python3 tools/audit_cli.py live-flags; then
+            echo "FAIL: audit did not catch the simulated live-flag flip"
+            exit 1
+          fi
+          echo "OK: audit correctly failed on simulated live-flag flip"
+          cp /tmp/mode-backup.js netlify/functions/_lib/mode.js
+          python3 tools/audit_cli.py live-flags
+      - name: confirm repo is clean after simulated regressions
+        run: |
+          git diff --exit-code || (echo "FAIL: forced-failure test left repo dirty" && exit 1)
+
   python-audits:
     runs-on: ubuntu-latest
     steps:

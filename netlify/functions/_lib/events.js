@@ -84,4 +84,4 @@ async function listEntityIds(entityType) {
   return [...ids];
 }
 
-module.exports = { appendEvent, listEvents, listEntityIds, sha256, SCHEMA_VERSION };
+module.exports = { appendEvent, listEvents, listEntityIds, sha256, idemKey, SCHEMA_VERSION };

@@ -106,4 +106,4 @@ async function getDecision(entityType, entityId) {
   return getWithRetry(reconciliationStore(), `${entityType}:${entityId}`);
 }
 
-module.exports = { detectCandidates, recordDecision, getDecision, STATES };
+module.exports = { detectCandidates, recordDecision, getDecision, STATES, fingerprint };

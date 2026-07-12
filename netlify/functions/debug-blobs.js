@@ -11,17 +11,26 @@ const { withBlobs } = require("./_lib/with-blobs");
 exports.handler = withBlobs(async (event) => {
   const store = getStore("debug-blobs-test");
   const key = "diag:fixed-test-key";
-
   await store.setJSON(key, { at: new Date().toISOString(), note: "diagnostic" });
-
   const directGet = await store.get(key, { type: "json" });
   const listResult = await store.list({ prefix: "diag:" });
+
+  // Тепер відтворюємо ТОЧНИЙ патерн events.js: entityType:entityId::idempotencyKey
+  // з UUID-подібним entityId, у СПРАВЖНЬОМУ сторі "automation-events".
+  const eventsStore = getStore("automation-events");
+  const fakeUuid = "aaaaaaaa-1111-2222-3333-bbbbbbbbbbbb";
+  const realKey = `support_request:${fakeUuid}::${fakeUuid}`;
+  const prefix = `support_request:${fakeUuid}::`;
+  await eventsStore.setJSON(realKey, { test: true, entity_id: fakeUuid });
+  const realDirectGet = await eventsStore.get(realKey, { type: "json" });
+  const realListResult = await eventsStore.list({ prefix });
 
   return {
     statusCode: 200,
     body: JSON.stringify({
-      directGet,
-      listResult,
+      directGet, listResult,
+      realKey, prefix,
+      realDirectGet, realListResult,
     }),
   };
 });

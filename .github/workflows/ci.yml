@@ -39,6 +39,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
+      - name: npm install (no committed lockfile -- package-lock.json is gitignored per this repo's convention)
+        run: npm install
       - name: node --test on pure _lib logic
         run: node --test netlify/functions/_lib/__tests__/
 

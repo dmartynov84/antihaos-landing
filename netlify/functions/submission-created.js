@@ -98,6 +98,8 @@ exports.handler = withBlobs(async (event) => {
     });
     // Не кидаємо далі — Netlify вже прийняв форму, користувач не має
     // побачити наслідків внутрішнього збою автоматизації.
-    return { statusCode: 200, body: "" };
+    // TEMP DIAGNOSTIC (буде прибрано наступним комітом): показати помилку
+    // в тілі відповіді, щоб знайти причину без доступу до Netlify logs.
+    return { statusCode: 200, body: JSON.stringify({ diagnosticError: String(err && err.stack || err) }) };
   }
 });

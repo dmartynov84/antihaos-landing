@@ -113,6 +113,31 @@ def cmd_backup(args):
         json.dump(manifest, f, ensure_ascii=False, indent=2)
     print(f"Backup завершено: {out_dir} (manifest.json + checksums)")
 
+# ---------- restore drill ----------
+
+def cmd_restore_drill(args):
+    """Відновлює JSONL-файл з backup у ІЗОЛЬОВАНИЙ restore-drill стор
+    (ops-events-restore.js -- store name захардкожений на бекенді, НЕ
+    параметр, ніколи не production automation-events)."""
+    if not args.file:
+        sys.exit("--file обов'язковий (шлях до .jsonl з tools/ops_cli.py backup)")
+    events = []
+    with open(args.file, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                events.append(json.loads(line))
+    if not events:
+        sys.exit(f"{args.file}: 0 подій, нічого відновлювати")
+    status, data = call("POST", "/.netlify/functions/ops-events-restore", {"events": events})
+    print(json.dumps(data, ensure_ascii=False, indent=2))
+    if status != 200:
+        sys.exit(1)
+
+def cmd_restore_verify(args):
+    status, data = call("GET", "/.netlify/functions/ops-events-restore?action=verify")
+    print(json.dumps(data, ensure_ascii=False, indent=2))
+
 # ---------- dead-letter ----------
 
 def cmd_dead_letter(args):
@@ -188,6 +213,13 @@ def build_parser():
     b = sub.add_parser("backup", help="Локальний backup усіх events (JSONL+manifest+checksums)")
     b.add_argument("--out-dir")
     b.set_defaults(func=cmd_backup)
+
+    rd = sub.add_parser("restore-drill", help="Відновити JSONL-файл у ІЗОЛЬОВАНИЙ restore-drill стор (ніколи не production)")
+    rd.add_argument("--file", help="шлях до .jsonl з tools/ops_cli.py backup")
+    rd.set_defaults(func=cmd_restore_drill)
+
+    rv = sub.add_parser("restore-verify", help="Перевірити вміст restore-drill стору")
+    rv.set_defaults(func=cmd_restore_verify)
 
     dl = sub.add_parser("dead-letter", help="list/inspect/replay/cancel")
     dl.add_argument("action", choices=["list", "inspect", "replay", "cancel"])

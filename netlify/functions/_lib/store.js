@@ -8,6 +8,7 @@
 "use strict";
 
 const { getStore } = require("@netlify/blobs");
+const { setIfAbsent } = require("./conditional-write");
 
 function orders() {
   return getStore("checkout-orders");
@@ -42,12 +43,18 @@ async function updateOrder(orderId, patch) {
 // Повертає true, якщо це ПЕРШЕ бачення eventId (отже, слід обробити).
 // Повертає false, якщо подія вже була оброблена (replay/duplicate webhook) —
 // викликач має відповісти 200 і нічого не робити повторно.
-// ВАЖЛИВО: setJSON з onlyIfNew НЕ кидає виняток при конфлікті — повертає
-// { modified: false }. Перевіряти саме це поле, а не try/catch.
+// AUTOMATION OPERATIONS цикл: onlyIfNew насправді НЕ повертає
+// {modified,etag} для встановленої версії @netlify/blobs -- повертає
+// undefined і кидає TypeError на деструктуризації (знайдено живою
+// адверсаріальною перевіркою support-workflow, той самий патерн тут
+// ніколи не був справді пройдений, бо CHECKOUT_MODE=disabled завжди
+// зупиняв виконання раніше). Тепер через setIfAbsent
+// (_lib/conditional-write.js) -- get-then-set, невеликий race window,
+// прийнятний для webhook-дедуплікації.
 async function markEventOnce(eventId) {
   const store = webhookEvents();
-  const result = await store.setJSON(eventId, { seenAt: new Date().toISOString() }, { onlyIfNew: true });
-  return result.modified === true;
+  const { modified } = await setIfAbsent(store, eventId, { seenAt: new Date().toISOString() });
+  return modified;
 }
 
 async function appendAudit(orderId, type, data) {

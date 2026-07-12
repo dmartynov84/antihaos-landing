@@ -3,12 +3,15 @@
 // Snapshot/projection — це похідний, перебудовуваний кеш; race condition
 // на projection більше не губить дані, бо повну історію завжди можна
 // перегорнути заново з events. Ключ = entityType:entityId::idempotencyKey,
-// що дає одночасно (а) атомарний dedup через onlyIfNew і (б) list за
-// префіксом для перебудови projection.
+// що дає одночасно (а) dedup через setIfAbsent (get-then-set, невеликий
+// race window — не справжній atomic onlyIfNew, той не працює на цій
+// встановленій версії @netlify/blobs, див. _lib/conditional-write.js)
+// і (б) list за префіксом для перебудови projection.
 "use strict";
 
 const { getStore } = require("@netlify/blobs");
 const crypto = require("crypto");
+const { setIfAbsent } = require("./conditional-write");
 
 const SCHEMA_VERSION = 1;
 
@@ -41,10 +44,9 @@ async function appendEvent({ eventType, entityType, entityId, workflowId, correl
     status: status || "accepted",
     payload: payload || {},
   };
-  const { modified } = await store.setJSON(key, envelope, { onlyIfNew: true });
+  const { modified, value } = await setIfAbsent(store, key, envelope);
   if (!modified) {
-    const existing = await store.get(key, { type: "json" });
-    return { event: existing, wasNew: false };
+    return { event: value, wasNew: false };
   }
   return { event: envelope, wasNew: true };
 }

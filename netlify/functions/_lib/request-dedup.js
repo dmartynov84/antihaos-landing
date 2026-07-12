@@ -10,6 +10,7 @@
 
 const { getStore } = require("@netlify/blobs");
 const crypto = require("crypto");
+const { setIfAbsent } = require("./conditional-write");
 
 function dedupStore(namespace) {
   return getStore(`dedup-${namespace}`);
@@ -17,15 +18,9 @@ function dedupStore(namespace) {
 
 async function resolvePublicId(namespace, dedupKey) {
   const store = dedupStore(namespace);
-  const existing = await store.get(dedupKey, { type: "json" });
-  if (existing) return { publicId: existing.publicId, isNew: false };
-
   const publicId = crypto.randomUUID();
-  const { modified } = await store.setJSON(dedupKey, { publicId }, { onlyIfNew: true });
-  if (!modified) {
-    const winner = await store.get(dedupKey, { type: "json" });
-    return { publicId: winner.publicId, isNew: false };
-  }
+  const { modified, value } = await setIfAbsent(store, dedupKey, { publicId });
+  if (!modified) return { publicId: value.publicId, isNew: false };
   return { publicId, isNew: true };
 }
 

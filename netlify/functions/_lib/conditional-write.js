@@ -9,16 +9,23 @@
 // can return null for a key that store.list({prefix}) already confirms
 // exists — a cross-invocation read lag on point-reads specifically
 // (confirmed via netlify/functions/debug-blobs.js: list() found a key
-// milliseconds after a different invocation wrote it, but get() on that
-// same key returned null). getWithRetry() below re-reads with backoff
-// instead of trusting the first null.
+// immediately, but get() on that same key from a separate invocation
+// returned null; a 900ms retry budget (first attempt at this fix) was
+// NOT enough — measured empirically, still not_found on a status check
+// fired right after creation. The lag is real and its worst case is
+// UNDOCUMENTED anywhere in Netlify's own docs; the budget below is an
+// empirically-widened mitigation, not a guaranteed bound. If this ever
+// proves insufficient in practice, the honest fix is to stop relying on
+// point-reads-right-after-write for this store entirely (e.g. carry the
+// just-written value through in-memory return values instead of
+// re-reading), not to keep raising the retry count indefinitely.
 "use strict";
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function getWithRetry(store, key, { attempts = 4, delayMs = 300 } = {}) {
+async function getWithRetry(store, key, { attempts = 8, delayMs = 500 } = {}) {
   for (let i = 0; i < attempts; i++) {
     const value = await store.get(key, { type: "json" });
     if (value !== null && value !== undefined) return value;
@@ -36,7 +43,7 @@ async function getWithRetry(store, key, { attempts = 4, delayMs = 300 } = {}) {
 // gated off entirely right now). Uses getWithRetry for the existence
 // check specifically because of the read-lag finding above.
 async function setIfAbsent(store, key, value) {
-  const existing = await getWithRetry(store, key, { attempts: 2, delayMs: 250 });
+  const existing = await getWithRetry(store, key, { attempts: 4, delayMs: 400 });
   if (existing) return { modified: false, value: existing };
   await store.setJSON(key, value);
   return { modified: true, value };

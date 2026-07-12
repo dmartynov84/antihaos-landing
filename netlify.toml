@@ -1,7 +1,11 @@
 [build]
   publish = "."
+  functions = "netlify/functions"
   # Не деплоїти, якщо змінились лише dev-інструменти/доки, що не впливають на опубліковані файли.
   ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- . ':!tools' ':!.claude' ':!*.md' ':!README.txt'"
+
+[functions]
+  node_bundler = "esbuild"
 
 [[headers]]
   for = "/*"

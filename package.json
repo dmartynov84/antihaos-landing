@@ -1,0 +1,8 @@
+{
+  "name": "antihaos-landing",
+  "private": true,
+  "description": "Статичний сайт (без build-кроку) + Netlify Functions для sandbox checkout (CHECKOUT_MODE=disabled за замовчуванням).",
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0"
+  }
+}

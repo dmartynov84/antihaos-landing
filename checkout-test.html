@@ -1,0 +1,185 @@
+<!doctype html><html lang="uk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Checkout test — внутрішній QA (не для клієнтів)</title><link rel="stylesheet" href="/style.css">
+<style>
+/* Сторінка внутрішнього QA, не публічна маркетингова сторінка — стилі
+   навмисно тримаємо локально, а не в style.css, щоб не роздувати
+   загальний CSS для функціоналу, якого звичайний відвідувач не бачить. */
+.sandbox-banner{position:sticky;top:0;z-index:200;background:var(--red);color:#fff;text-align:center;font-weight:700;padding:10px 16px;font-size:14px;letter-spacing:.01em}
+.ct-wrap{max-width:560px;margin:32px auto;padding:0 20px 80px}
+.ct-card{background:#fff;border:1px solid var(--line);border-radius:var(--r-lg);padding:26px;box-shadow:0 12px 34px rgba(11,35,65,.06);margin-bottom:18px}
+.ct-card h2{margin:0 0 14px;font-size:18px}
+.ct-pkg{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.ct-pkg label{flex:1;min-width:120px;border:1px solid var(--line);border-radius:var(--r-md);padding:12px;cursor:pointer;text-align:center;font-weight:600}
+.ct-pkg input{margin-right:6px}
+.ct-field{margin-bottom:14px}
+.ct-field label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
+.ct-field input[type=email]{width:100%;padding:11px 14px;border:1px solid var(--line);border-radius:var(--r-sm);font-size:15px;font-family:inherit}
+.ct-consent{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;color:var(--ink2);background:var(--paper2);border:1px solid var(--line);border-radius:var(--r-md);padding:14px}
+.ct-consent input{margin-top:3px;width:20px;height:20px;flex-shrink:0}
+.ct-consent a{color:var(--gold);font-weight:600}
+.ct-summary{display:flex;justify-content:space-between;font-size:15px;font-weight:700;margin:16px 0;padding-top:14px;border-top:1px dashed var(--line)}
+.ct-msg{border-radius:var(--r-md);padding:12px 16px;font-size:13.5px;margin-top:14px}
+.ct-msg.ok{background:#E7F3EC;color:#127A4D}
+.ct-msg.err{background:#FBE9EA;color:#A5303F}
+.ct-download{display:inline-block;margin-top:10px;font-weight:700}
+.ct-audit{font-family:ui-monospace,Consolas,monospace;font-size:11.5px;background:var(--paper2);border-radius:var(--r-sm);padding:10px;max-height:220px;overflow:auto;white-space:pre-wrap}
+.ct-mode{font-family:ui-monospace,Consolas,monospace;font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="sandbox-banner">ТЕСТОВИЙ РЕЖИМ — РЕАЛЬНІ КОШТИ НЕ СПИСУЮТЬСЯ. Ця сторінка не для клієнтів.</div>
+<div class="ct-wrap">
+  <div class="ct-card">
+    <h2>Sandbox checkout (внутрішній QA)</h2>
+    <p class="ct-mode">CHECKOUT_MODE: <span id="modeLabel">перевіряю…</span></p>
+  </div>
+
+  <form class="ct-card" id="orderForm">
+    <h2>1. Пакет</h2>
+    <div class="ct-pkg">
+      <label><input type="radio" name="pkg" value="starter" checked> Starter — 1490 грн</label>
+      <label><input type="radio" name="pkg" value="pro"> Pro — 4900 грн</label>
+      <label><input type="radio" name="pkg" value="vip"> VIP — 9900 грн</label>
+    </div>
+
+    <h2>2. Email</h2>
+    <div class="ct-field">
+      <label for="email">Email (тестовий, нікуди реально не піде)</label>
+      <input type="email" id="email" required placeholder="test@example.com">
+    </div>
+
+    <h2>3. Згода</h2>
+    <label class="ct-consent">
+      <input type="checkbox" id="consent">
+      <span>Я погоджуюсь на негайне надання доступу до цифрових матеріалів і розумію, що це може означати втрату права на відмову від договору протягом 14 днів. (<b>CANDIDATE-текст, не затверджений юристом</b> — <a href="/refund.html" target="_blank">Refund</a> · повний контекст: <code>docs/checkout-legal-spec.md</code> у репозиторії, не публікується на сайті)</span>
+    </label>
+
+    <div class="ct-summary"><span id="summaryPkg">Starter</span><span id="summaryPrice">1490 грн</span></div>
+
+    <button class="btn btn-primary" type="submit" id="payBtn" style="width:100%">Pay (test)</button>
+    <div id="orderMsg"></div>
+  </form>
+
+  <div class="ct-card" id="statusCard" style="display:none">
+    <h2>Стан замовлення</h2>
+    <p><b>Order:</b> <span id="stOrderId"></span></p>
+    <p><b>Статус:</b> <span id="stStatus"></span></p>
+    <div id="downloadArea"></div>
+    <div style="margin-top:14px;display:flex;gap:10px">
+      <button class="btn btn-light" type="button" id="refreshBtn">Оновити стан</button>
+      <button class="btn btn-light" type="button" id="refundBtn">Симулювати refund</button>
+    </div>
+    <h3 style="font-size:13px;margin-top:18px">Audit trail</h3>
+    <div class="ct-audit" id="auditBox"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var PRICES = { starter: 1490, pro: 4900, vip: 9900 };
+  var pkgRadios = document.querySelectorAll('input[name="pkg"]');
+  var summaryPkg = document.getElementById('summaryPkg');
+  var summaryPrice = document.getElementById('summaryPrice');
+  var orderForm = document.getElementById('orderForm');
+  var orderMsg = document.getElementById('orderMsg');
+  var statusCard = document.getElementById('statusCard');
+  var stOrderId = document.getElementById('stOrderId');
+  var stStatus = document.getElementById('stStatus');
+  var downloadArea = document.getElementById('downloadArea');
+  var auditBox = document.getElementById('auditBox');
+  var modeLabel = document.getElementById('modeLabel');
+
+  var CONSENT_TEXT = "Я погоджуюсь на негайне надання доступу до цифрових матеріалів і розумію, що це може означати втрату права на відмову від договору протягом 14 днів.";
+
+  function updateSummary() {
+    var val = document.querySelector('input[name="pkg"]:checked').value;
+    summaryPkg.textContent = val.charAt(0).toUpperCase() + val.slice(1);
+    summaryPrice.textContent = PRICES[val] + ' грн';
+  }
+  pkgRadios.forEach(function (r) { r.addEventListener('change', updateSummary); });
+  updateSummary();
+
+  function showMsg(el, text, ok) {
+    el.innerHTML = '<div class="ct-msg ' + (ok ? 'ok' : 'err') + '">' + text + '</div>';
+  }
+
+  var currentOrderId = localStorage.getItem('ct_order_id');
+
+  function renderStatus(data) {
+    statusCard.style.display = 'block';
+    stOrderId.textContent = data.orderId;
+    stStatus.textContent = data.status;
+    auditBox.textContent = JSON.stringify(data.audit, null, 2);
+    downloadArea.innerHTML = '';
+    if (data.status === 'paid' && data.downloadTokens) {
+      data.downloadTokens.forEach(function (t, i) {
+        var a = document.createElement('a');
+        a.className = 'ct-download';
+        a.href = '/.netlify/functions/download?token=' + encodeURIComponent(t);
+        a.textContent = 'Завантажити файл ' + (i + 1) + ' (sandbox-заглушка)';
+        downloadArea.appendChild(a);
+        downloadArea.appendChild(document.createElement('br'));
+      });
+    }
+  }
+
+  function refreshStatus(orderId) {
+    fetch('/.netlify/functions/order-status?orderId=' + encodeURIComponent(orderId))
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        if (!res.ok) { showMsg(orderMsg, 'Помилка статусу: ' + JSON.stringify(res.d), false); return; }
+        renderStatus(res.d);
+      });
+  }
+
+  fetch('/.netlify/functions/order-status?orderId=ping').then(function (r) {
+    modeLabel.textContent = r.status === 503 ? 'disabled' : 'operational (див. відповідь функції)';
+  }).catch(function () { modeLabel.textContent = 'невідомо (функції не задеплоєні?)'; });
+
+  if (currentOrderId) refreshStatus(currentOrderId);
+
+  orderForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var pkg = document.querySelector('input[name="pkg"]:checked').value;
+    var email = document.getElementById('email').value;
+    var consent = document.getElementById('consent').checked;
+
+    fetch('/.netlify/functions/create-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ packageId: pkg, email: email, consentGiven: consent, consentText: CONSENT_TEXT }),
+    })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        if (!res.ok) { showMsg(orderMsg, 'Order не створено: ' + JSON.stringify(res.d), false); return; }
+        currentOrderId = res.d.orderId;
+        localStorage.setItem('ct_order_id', currentOrderId);
+        showMsg(orderMsg, 'Order створено: ' + currentOrderId + '. Симулюю оплату…', true);
+        return fetch('/.netlify/functions/simulate-pay', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderId: currentOrderId, action: 'pay' }),
+        })
+          .then(function (r2) { return r2.json().then(function (d2) { return { ok: r2.ok, d: d2 }; }); })
+          .then(function (res2) {
+            if (!res2.ok) { showMsg(orderMsg, 'Simulate-pay помилка: ' + JSON.stringify(res2.d), false); return; }
+            showMsg(orderMsg, 'Оплату (test) підтверджено.', true);
+            refreshStatus(currentOrderId);
+          });
+      })
+      .catch(function (err) { showMsg(orderMsg, 'Мережева помилка: ' + err, false); });
+  });
+
+  document.getElementById('refreshBtn').addEventListener('click', function () {
+    if (currentOrderId) refreshStatus(currentOrderId);
+  });
+  document.getElementById('refundBtn').addEventListener('click', function () {
+    if (!currentOrderId) return;
+    fetch('/.netlify/functions/simulate-pay', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderId: currentOrderId, action: 'refund' }),
+    }).then(function () { refreshStatus(currentOrderId); });
+  });
+})();
+</script>
+</body></html>

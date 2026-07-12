@@ -2,34 +2,39 @@
 
 Єдиний реєстр рішень, які МАЄ ухвалити власник (за потреби — разом із
 юристом/бухгалтером). Claude Code не заповнює жодне з них вигаданим
-значенням. Оновлюється кожним циклом; статус змінюється лише коли
-власник фактично підтвердив рішення (не коли асистент вважає, що
-"це, мабуть, ок").
+значенням. Нумерація O-01…O-14 узгоджена з завданням AUTOMATION
+OPERATIONS цього циклу; O-15+ — пункти з попередніх циклів, які не
+мають прямого відповідника в новій нумерації, перенесені без втрати.
 
 | ID | Рішення | Статус | Хто підтверджує | Що блокує |
 |---|---|---|---|---|
 | O-01 | Перевірка практикуючим юристом | OPEN | Lawyer | Live payments |
-| O-02 | Платіжний провайдер (Stripe/WayForPay/Fondy/інший) | OPEN | Owner | Checkout live, реальний webhook endpoint провайдера |
-| O-03 | KYC платіжного провайдера | OPEN | Owner/provider | Live payments |
-| O-04 | Реквізити продавця (ФОП/юрособа, реєстраційні дані) для оферти й чеків | OPEN | Owner | Offer/checkout, ПРРО |
-| O-05 | CRM-провайдер (чи взагалі потрібен зовнішній, чи достатньо mock+Blobs) | OPEN | Owner | `CRM_MODE=live` |
-| O-06 | Email-провайдер (транзакційний + маркетинговий, окремо) | OPEN | Owner | `EMAIL_MODE=live`, будь-яка реальна розсилка |
-| O-07 | Хостинг платних файлів (S3/Netlify Blobs як object storage/інше) | OPEN | Owner/Engineer | Реальна (не sandbox-заглушка) захищена видача |
-| O-08 | Публічний support-email/канал | OPEN | Owner | Клієнтська підтримка (зараз лише `antyhaos.marketing@gmail.com` mailto, без тікет-системи) |
-| O-09 | Календар для VIP-бронювання | OPEN | Owner | VIP booking, `[CALENDAR_LINK]` у VIP-05 |
-| O-10 | GA4/Pixel ID | OPEN | Owner | `ANALYTICS_MODE=live` (зараз `"TODO"`, безпечно guard-овано — не вантажиться) |
-| O-11 | Політика зберігання даних лідів (строк retention) | OPEN | Lawyer/Owner | `CRM_MODE=live` з реальними контактами (mock-режим не блокується) |
-| O-12 | ПРРО / фіскалізація | OPEN | Accountant/Lawyer | Live payments |
-| O-13 | Політика доступу після refund (чи миттєво відкликати, чи grace-період) | OPEN | Lawyer/Owner | Entitlement-логіка (зараз: миттєво відкликає, `download.js` звіряє живий статус — це технічний дефолт, не підтверджена політика) |
-| O-14 | Канал сповіщень власника (email/Telegram/Slack) про збої автоматизації | OPEN | Owner | Daily digest, real-time owner alerts (зараз: лише Netlify Function logs, які треба дивитись вручну) |
-| O-15 | Чекбокс маркетингової згоди на lead-формах | OPEN | Owner/Lawyer | Будь-яка маркетингова розсилка лідам; зараз `submission-created.js` записує `consentStatus:"not_collected"` для кожного нового контакту |
-| O-16 | Checkout consent-текст (candidate, `docs/checkout-legal-spec.md`) | OPEN | Lawyer | `CHECKOUT_MODE=live` |
-| O-17 | Практична перевірка mock/sandbox-контуру наживо (потрібні env-секрети) | OPEN | Owner (технічна дія: встановити `CHECKOUT_MODE`, `CHECKOUT_WEBHOOK_SECRET`, `CHECKOUT_DOWNLOAD_SECRET` у Netlify dashboard) | Повне end-to-end підтвердження sandbox checkout — асистент перевірив лише fail-closed `disabled`-поведінку |
+| O-02 | Платіжний провайдер | OPEN | Owner | Live checkout |
+| O-03 | CRM provider | OPEN | Owner | `CRM_MODE=live` |
+| O-04 | Email provider | OPEN | Owner | `EMAIL_MODE=live` |
+| O-05 | Support email/канал | OPEN | Owner | Customer support (зараз лише mailto) |
+| O-06 | Calendar provider/link | OPEN | Owner | VIP booking, `[CALENDAR_LINK]` |
+| O-07 | VIP support start date rule (від якої події рахувати 7 днів супроводу) | OPEN | Owner | 7-day automation (немає автоматичного таймера, доки не вирішено) |
+| O-08 | Support response SLA | OPEN | Owner | Клієнтські очікування щодо строку відповіді |
+| O-09 | Refund entitlement policy (миттєво vs grace-період) | OPEN | Owner/Lawyer | Access after refund (технічний дефолт: миттєво, не підтверджена політика) |
+| O-10 | Data retention policy | OPEN | Lawyer/Owner | PII lifecycle, `CRM_MODE=live` з реальними контактами |
+| O-11 | Owner alert channel (email/Telegram/Slack) | OPEN | Owner | Production incident notifications (зараз лише Netlify function logs) |
+| O-12 | Marketing consent UI (чекбокс на формах) | OPEN | Owner/Lawyer | Будь-яка маркетингова розсилка (зараз `not_collected` для кожного контакту) |
+| O-13 | Реквізити продавця | OPEN | Owner | Offer/checkout, ПРРО |
+| O-14 | ПРРО/фіскалізація | OPEN | Accountant/Lawyer | Live payments |
 
-## Явно НЕ є owner blocker (щоб не плутати з рештою)
+## Перенесено з попередніх циклів (без прямого відповідника вище)
 
-- Технічні задачі, які Claude Code МОЖЕ зробити сам (Етап 4-8 цього
-  завдання: VIP/support/refund workflows, owner dashboard, CI/CD,
-  backup runbooks) — це не блокери рішень власника, а обсяг роботи,
-  свідомо відкладений на наступні цикли (див. `docs/automation/
-  process-map.md`, розділ "Що це означає практично").
+| ID | Рішення | Статус | Хто підтверджує | Що блокує |
+|---|---|---|---|---|
+| O-15 | KYC платіжного провайдера | OPEN | Owner/provider | Live payments |
+| O-16 | Хостинг платних файлів (реальні PRO/VIP/Starter) | OPEN | Owner/Engineer | Реальна (не sandbox-заглушка) захищена видача |
+| O-17 | GA4/Pixel ID | OPEN | Owner | `ANALYTICS_MODE=live` (зараз `"TODO"`, безпечно guard-овано) |
+| O-18 | Checkout consent-текст (candidate, `docs/checkout-legal-spec.md`) | OPEN | Lawyer | `CHECKOUT_MODE=live` |
+| O-19 | Практична перевірка mock/sandbox-контурів наживо | OPEN | Owner (технічна дія) | Потрібно встановити на Netlify: `CHECKOUT_MODE`, `CHECKOUT_WEBHOOK_SECRET`, `CHECKOUT_DOWNLOAD_SECRET`, `ADMIN_TOKEN` — асистент не має доступу до Netlify dashboard |
+
+## Явно НЕ є owner blocker
+
+- Технічні задачі, які Claude Code МОЖЕ зробити сам (Etap 5+: owner
+  dashboard, daily digest, CI/CD gates, backup runbooks, автоматичний
+  cron-retry) — обсяг роботи, не рішення власника.

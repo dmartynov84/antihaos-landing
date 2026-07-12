@@ -1,5 +1,6 @@
 User-agent: *
 Allow: /
 Disallow: /checkout-test.html
+Disallow: /automation-test.html
 
 Sitemap: https://zapuskbiznesu.netlify.app/sitemap.xml

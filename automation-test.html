@@ -1,0 +1,161 @@
+<!doctype html><html lang="uk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Automation test — внутрішній QA (не для клієнтів)</title><link rel="stylesheet" href="/style.css">
+<style>
+.sandbox-banner{position:sticky;top:0;z-index:200;background:var(--red);color:#fff;text-align:center;font-weight:700;padding:10px 16px;font-size:14px}
+.at-wrap{max-width:720px;margin:32px auto;padding:0 20px 80px;display:flex;flex-direction:column;gap:22px}
+.at-card{background:#fff;border:1px solid var(--line);border-radius:var(--r-lg);padding:24px;box-shadow:0 12px 34px rgba(11,35,65,.06)}
+.at-card h2{margin:0 0 4px;font-size:17px}
+.at-card .sub{color:var(--muted);font-size:12.5px;margin:0 0 14px}
+.at-field{margin-bottom:12px}
+.at-field label{display:block;font-size:12.5px;font-weight:600;margin-bottom:5px}
+.at-field input,.at-field select,.at-field textarea{width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:var(--r-sm);font-size:14px;font-family:inherit;box-sizing:border-box}
+.at-field textarea{min-height:70px;resize:vertical}
+.at-row{display:flex;gap:10px}
+.at-row>*{flex:1}
+.at-msg{border-radius:var(--r-md);padding:10px 14px;font-size:13px;margin-top:10px;white-space:pre-wrap;font-family:ui-monospace,Consolas,monospace}
+.at-msg.ok{background:#E7F3EC;color:#127A4D}
+.at-msg.err{background:#FBE9EA;color:#A5303F}
+</style>
+</head>
+<body>
+<div class="sandbox-banner">ТЕСТОВИЙ РЕЖИМ — не для клієнтів. Support/Refund/VIP workflows (mock/sandbox).</div>
+<div class="at-wrap">
+
+  <form class="at-card" id="supportForm">
+    <h2>Support workflow</h2>
+    <p class="sub">POST /support-submit → GET /support-status (requestId — випадковий, не вгадуваний)</p>
+    <div class="at-row">
+      <div class="at-field"><label>Email</label><input type="email" id="s-email" value="qa-support@example.com" required></div>
+      <div class="at-field"><label>Категорія</label><select id="s-category">
+        <option value="access">access</option><option value="broken_file">broken_file</option>
+        <option value="wrong_package">wrong_package</option><option value="payment">payment</option>
+        <option value="refund">refund</option><option value="vip">vip</option>
+        <option value="technical">technical</option><option value="general" selected>general</option>
+      </select></div>
+    </div>
+    <div class="at-field"><label>Опис</label><textarea id="s-desc">Тестове звернення для QA цього циклу.</textarea></div>
+    <button class="btn btn-primary" type="submit">Submit support request</button>
+    <button class="btn btn-light" type="button" id="s-check" style="margin-top:6px">Перевірити статус останнього</button>
+    <div id="s-msg"></div>
+  </form>
+
+  <form class="at-card" id="refundForm">
+    <h2>Refund workflow</h2>
+    <p class="sub">POST /refund-submit → GET /refund-status. Потребує реальний sandbox orderId (створіть через /checkout-test.html спочатку).</p>
+    <div class="at-row">
+      <div class="at-field"><label>Email (той самий, що в order)</label><input type="email" id="r-email" placeholder="test@example.com" required></div>
+      <div class="at-field"><label>Order ID</label><input type="text" id="r-orderid" placeholder="з checkout-test.html" required></div>
+    </div>
+    <div class="at-row">
+      <div class="at-field"><label>Причина</label><select id="r-reason">
+        <option value="access_not_received">access_not_received</option>
+        <option value="broken_file">broken_file</option>
+        <option value="wrong_package">wrong_package</option>
+        <option value="missing_files">missing_files</option>
+        <option value="material_mismatch">material_mismatch</option>
+        <option value="duplicate_payment">duplicate_payment</option>
+        <option value="changed_mind">changed_mind</option>
+        <option value="other" selected>other</option>
+      </select></div>
+      <div class="at-field"><label>Опис</label><input type="text" id="r-desc" value="QA-тест"></div>
+    </div>
+    <button class="btn btn-primary" type="submit">Submit refund request</button>
+    <button class="btn btn-light" type="button" id="r-check" style="margin-top:6px">Перевірити статус останнього</button>
+    <div id="r-msg"></div>
+  </form>
+
+  <div class="at-card">
+    <h2>VIP workflow</h2>
+    <p class="sub">POST /vip-trigger (test entitlement, потребує X-Admin-Token) → POST /vip-intake → GET /vip-status</p>
+    <div class="at-field"><label>X-Admin-Token</label><input type="text" id="v-token" placeholder="admin token"></div>
+    <div class="at-field"><label>Email</label><input type="email" id="v-email" value="qa-vip@example.com"></div>
+    <button class="btn btn-primary" type="button" id="v-trigger">1. Trigger (test entitlement)</button>
+    <button class="btn btn-light" type="button" id="v-intake" style="margin-top:6px">2. Submit intake</button>
+    <button class="btn btn-light" type="button" id="v-check" style="margin-top:6px">3. Перевірити статус</button>
+    <div id="v-msg"></div>
+  </div>
+
+</div>
+<script>
+(function () {
+  function show(el, text, ok) { el.innerHTML = '<div class="at-msg ' + (ok ? 'ok' : 'err') + '">' + text + '</div>'; }
+  function post(url, body, headers) {
+    return fetch(url, { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, headers || {}), body: JSON.stringify(body) })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, status: r.status, d: d }; }); });
+  }
+  function get(url) {
+    return fetch(url).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, status: r.status, d: d }; }); });
+  }
+
+  var lastSupportId = localStorage.getItem('at_support_id');
+  var lastRefundId = localStorage.getItem('at_refund_id');
+  var lastVipId = localStorage.getItem('at_vip_id');
+
+  document.getElementById('supportForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var msg = document.getElementById('s-msg');
+    post('/.netlify/functions/support-submit', {
+      email: document.getElementById('s-email').value,
+      category: document.getElementById('s-category').value,
+      description: document.getElementById('s-desc').value,
+    }).then(function (res) {
+      show(msg, JSON.stringify(res.d, null, 2), res.ok);
+      if (res.d && res.d.requestId) { lastSupportId = res.d.requestId; localStorage.setItem('at_support_id', lastSupportId); }
+    });
+  });
+  document.getElementById('s-check').addEventListener('click', function () {
+    var msg = document.getElementById('s-msg');
+    if (!lastSupportId) { show(msg, 'Немає requestId -- спершу відправ форму', false); return; }
+    get('/.netlify/functions/support-status?requestId=' + encodeURIComponent(lastSupportId)).then(function (res) {
+      show(msg, JSON.stringify(res.d, null, 2), res.ok);
+    });
+  });
+
+  document.getElementById('refundForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var msg = document.getElementById('r-msg');
+    post('/.netlify/functions/refund-submit', {
+      email: document.getElementById('r-email').value,
+      orderId: document.getElementById('r-orderid').value,
+      reason: document.getElementById('r-reason').value,
+      description: document.getElementById('r-desc').value,
+    }).then(function (res) {
+      show(msg, JSON.stringify(res.d, null, 2), res.ok);
+      if (res.d && res.d.requestId) { lastRefundId = res.d.requestId; localStorage.setItem('at_refund_id', lastRefundId); }
+    });
+  });
+  document.getElementById('r-check').addEventListener('click', function () {
+    var msg = document.getElementById('r-msg');
+    if (!lastRefundId) { show(msg, 'Немає requestId -- спершу відправ форму', false); return; }
+    get('/.netlify/functions/refund-status?requestId=' + encodeURIComponent(lastRefundId)).then(function (res) {
+      show(msg, JSON.stringify(res.d, null, 2), res.ok);
+    });
+  });
+
+  document.getElementById('v-trigger').addEventListener('click', function () {
+    var msg = document.getElementById('v-msg');
+    post('/.netlify/functions/vip-trigger', {
+      email: document.getElementById('v-email').value,
+      testEntitlement: true,
+    }, { 'X-Admin-Token': document.getElementById('v-token').value }).then(function (res) {
+      show(msg, JSON.stringify(res.d, null, 2), res.ok);
+      if (res.d && res.d.workflowId) { lastVipId = res.d.workflowId; localStorage.setItem('at_vip_id', lastVipId); }
+    });
+  });
+  document.getElementById('v-intake').addEventListener('click', function () {
+    var msg = document.getElementById('v-msg');
+    if (!lastVipId) { show(msg, 'Немає workflowId -- спершу Trigger', false); return; }
+    post('/.netlify/functions/vip-intake', {
+      workflowId: lastVipId,
+      intake: { niche: 'QA test niche', product: 'QA test product', offer: 'QA test offer' },
+    }).then(function (res) { show(msg, JSON.stringify(res.d, null, 2), res.ok); });
+  });
+  document.getElementById('v-check').addEventListener('click', function () {
+    var msg = document.getElementById('v-msg');
+    if (!lastVipId) { show(msg, 'Немає workflowId -- спершу Trigger', false); return; }
+    get('/.netlify/functions/vip-status?workflowId=' + encodeURIComponent(lastVipId)).then(function (res) {
+      show(msg, JSON.stringify(res.d, null, 2), res.ok);
+    });
+  });
+})();
+</script>
+</body></html>

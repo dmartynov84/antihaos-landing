@@ -9,8 +9,9 @@
 
 const { getAutomationModes } = require("./_lib/automation-mode");
 const crm = require("./_lib/adapters/crm");
+const { withBlobs } = require("./_lib/with-blobs");
 
-exports.handler = async (event) => {
+exports.handler = withBlobs(async (event) => {
   if (event.httpMethod !== "GET") {
     return { statusCode: 405, body: JSON.stringify({ error: "method_not_allowed" }) };
   }
@@ -30,4 +31,4 @@ exports.handler = async (event) => {
   }
 
   return { statusCode: 200, body: JSON.stringify({ contact }) };
-};
+});

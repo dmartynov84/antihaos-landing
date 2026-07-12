@@ -5,8 +5,9 @@
 
 const { isOperational, getMode } = require("./_lib/mode");
 const { getOrder, listAudit } = require("./_lib/store");
+const { withBlobs } = require("./_lib/with-blobs");
 
-exports.handler = async (event) => {
+exports.handler = withBlobs(async (event) => {
   if (event.httpMethod !== "GET") {
     return { statusCode: 405, body: JSON.stringify({ error: "method_not_allowed" }) };
   }
@@ -39,4 +40,4 @@ exports.handler = async (event) => {
       audit,
     }),
   };
-};
+});

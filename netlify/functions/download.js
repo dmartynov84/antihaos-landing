@@ -10,6 +10,7 @@ const path = require("path");
 const { isOperational, getMode } = require("./_lib/mode");
 const { verifyDownloadToken } = require("./_lib/security");
 const { getOrder, appendAudit } = require("./_lib/store");
+const { withBlobs } = require("./_lib/with-blobs");
 
 // Sandbox-заглушка. Реальні PRO/VIP-файли НЕ лежать у цьому репо і не
 // задеплоєні на Netlify (окремий, ще не вирішений owner blocker: хостинг
@@ -17,7 +18,7 @@ const { getOrder, appendAudit } = require("./_lib/store");
 // не імітує наявність реального продукту.
 const PLACEHOLDER_PATH = path.join(__dirname, "..", "..", "assets", "sandbox", "SANDBOX-PLACEHOLDER.txt");
 
-exports.handler = async (event) => {
+exports.handler = withBlobs(async (event) => {
   if (event.httpMethod !== "GET") {
     return { statusCode: 405, body: JSON.stringify({ error: "method_not_allowed" }) };
   }
@@ -63,4 +64,4 @@ exports.handler = async (event) => {
     },
     body: content,
   };
-};
+});

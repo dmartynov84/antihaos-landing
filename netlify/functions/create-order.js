@@ -10,8 +10,9 @@ const { isOperational, getMode } = require("./_lib/mode");
 const { getProduct } = require("./_lib/products");
 const { isConsentValid, OFFER_VERSION, REFUND_VERSION } = require("./_lib/consent");
 const { createOrder, appendAudit } = require("./_lib/store");
+const { withBlobs } = require("./_lib/with-blobs");
 
-exports.handler = async (event) => {
+exports.handler = withBlobs(async (event) => {
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: JSON.stringify({ error: "method_not_allowed" }) };
   }
@@ -60,4 +61,4 @@ exports.handler = async (event) => {
     statusCode: 200,
     body: JSON.stringify({ orderId: order.id, packageId: product.id, amountUah: product.amountUah, mode: getMode() }),
   };
-};
+});

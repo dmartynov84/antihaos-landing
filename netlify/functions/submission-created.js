@@ -13,10 +13,11 @@ const { log } = require("./_lib/logger");
 const crm = require("./_lib/adapters/crm");
 const email = require("./_lib/adapters/email");
 const { getAutomationModes } = require("./_lib/automation-mode");
+const { withBlobs } = require("./_lib/with-blobs");
 
 const KNOWN_FORMS = new Set(["lead-checklist", "lead-checklist-mobile"]);
 
-exports.handler = async (event) => {
+exports.handler = withBlobs(async (event) => {
   const correlationId = newCorrelationId("lead");
   const modes = getAutomationModes();
 
@@ -99,4 +100,4 @@ exports.handler = async (event) => {
     // побачити наслідків внутрішнього збою автоматизації.
     return { statusCode: 200, body: "" };
   }
-};
+});

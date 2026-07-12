@@ -11,8 +11,9 @@ const { getMode } = require("./_lib/mode");
 const { hmacHex } = require("./_lib/security");
 const { getOrder } = require("./_lib/store");
 const { processWebhookEvent } = require("./_lib/webhook-processor");
+const { withBlobs } = require("./_lib/with-blobs");
 
-exports.handler = async (event) => {
+exports.handler = withBlobs(async (event) => {
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: JSON.stringify({ error: "method_not_allowed" }) };
   }
@@ -50,4 +51,4 @@ exports.handler = async (event) => {
 
   const result = await processWebhookEvent({ rawBody, signatureHex, webhookSecret, downloadSecret });
   return { statusCode: result.status, body: JSON.stringify(result.body) };
-};
+});

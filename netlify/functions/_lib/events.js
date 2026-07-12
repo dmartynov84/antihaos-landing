@@ -11,7 +11,7 @@
 
 const { getStore } = require("@netlify/blobs");
 const crypto = require("crypto");
-const { setIfAbsent } = require("./conditional-write");
+const { setIfAbsent, getWithRetry } = require("./conditional-write");
 
 const SCHEMA_VERSION = 1;
 
@@ -51,10 +51,15 @@ async function appendEvent({ eventType, entityType, entityId, workflowId, correl
   return { event: envelope, wasNew: true };
 }
 
+// list() найшла ключ мілісекунди тому, а get() на ТОЙ САМИЙ ключ з
+// окремого виклику функції може повернути null (cross-invocation read
+// lag на point-reads, підтверджено діагностикою на проді, не
+// припущенням) -- getWithRetry перечитує з backoff замість того, щоб
+// довіряти першому null і мовчки відфільтрувати щойно записану подію.
 async function listEvents(entityType, entityId) {
   const store = eventsStore();
   const { blobs } = await store.list({ prefix: `${entityType}:${entityId}::` });
-  const events = await Promise.all(blobs.map((b) => store.get(b.key, { type: "json" })));
+  const events = await Promise.all(blobs.map((b) => getWithRetry(store, b.key)));
   return events.filter(Boolean).sort((a, b) => a.timestamp.localeCompare(b.timestamp));
 }
 

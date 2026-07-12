@@ -7,6 +7,7 @@
 
 const { getStore } = require("@netlify/blobs");
 const { listEvents } = require("./events");
+const { getWithRetry } = require("./conditional-write");
 
 function contactProjectionStore() {
   return getStore("projection-contacts");
@@ -63,7 +64,7 @@ async function rebuildContactProjection(email) {
 }
 
 async function getContactProjection(email) {
-  return contactProjectionStore().get(email, { type: "json" });
+  return getWithRetry(contactProjectionStore(), email);
 }
 
 module.exports = { projectContact, rebuildContactProjection, getContactProjection };

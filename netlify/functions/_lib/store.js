@@ -8,7 +8,7 @@
 "use strict";
 
 const { getStore } = require("@netlify/blobs");
-const { setIfAbsent } = require("./conditional-write");
+const { setIfAbsent, getWithRetry } = require("./conditional-write");
 
 function orders() {
   return getStore("checkout-orders");
@@ -26,14 +26,18 @@ async function createOrder(order) {
   return order;
 }
 
+// getWithRetry -- see _lib/conditional-write.js: a live production
+// diagnostic this cycle showed store.get(key) can return null for a key
+// that store.list() confirms exists, moments after a different
+// invocation wrote it (cross-invocation read lag on point-reads).
 async function getOrder(orderId) {
   const store = orders();
-  return store.get(orderId, { type: "json" });
+  return getWithRetry(store, orderId);
 }
 
 async function updateOrder(orderId, patch) {
   const store = orders();
-  const current = await store.get(orderId, { type: "json" });
+  const current = await getWithRetry(store, orderId);
   if (!current) return null;
   const next = { ...current, ...patch, updatedAt: new Date().toISOString() };
   await store.setJSON(orderId, next);
@@ -66,7 +70,7 @@ async function appendAudit(orderId, type, data) {
 async function listAudit(orderId) {
   const store = auditLog();
   const { blobs } = await store.list({ prefix: `${orderId}:` });
-  const entries = await Promise.all(blobs.map((b) => store.get(b.key, { type: "json" })));
+  const entries = await Promise.all(blobs.map((b) => getWithRetry(store, b.key)));
   return entries.filter(Boolean).sort((a, b) => a.at.localeCompare(b.at));
 }
 

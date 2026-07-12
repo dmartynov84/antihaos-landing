@@ -85,6 +85,23 @@
   function get(url) {
     return fetch(url).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, status: r.status, d: d }; }); });
   }
+  // Netlify Blobs: point-read (GET) можe відставати від щойно
+  // записаного ключа на секунди (виміряно цього циклу — до ~20с у
+  // гіршому випадку), навіть коли серверний getWithRetry (до ~4с) уже
+  // вичерпано. Чесний client-side polling з видимим станом "ще перевіряю"
+  // замість того, щоб видавати 404 як остаточну відповідь одразу після
+  // створення запису.
+  function getWithClientRetry(url, msgEl, attempts, delayMs) {
+    attempts = attempts || 6; delayMs = delayMs || 3000;
+    function attempt(n) {
+      return get(url).then(function (res) {
+        if (res.ok || n >= attempts) return res;
+        show(msgEl, 'Ще обробляється (Netlify Blobs read lag) — спроба ' + (n + 1) + '/' + attempts + '…', true);
+        return new Promise(function (resolve) { setTimeout(resolve, delayMs); }).then(function () { return attempt(n + 1); });
+      });
+    }
+    return attempt(0);
+  }
 
   var lastSupportId = localStorage.getItem('at_support_id');
   var lastRefundId = localStorage.getItem('at_refund_id');
@@ -105,7 +122,7 @@
   document.getElementById('s-check').addEventListener('click', function () {
     var msg = document.getElementById('s-msg');
     if (!lastSupportId) { show(msg, 'Немає requestId -- спершу відправ форму', false); return; }
-    get('/.netlify/functions/support-status?requestId=' + encodeURIComponent(lastSupportId)).then(function (res) {
+    getWithClientRetry('/.netlify/functions/support-status?requestId=' + encodeURIComponent(lastSupportId), msg).then(function (res) {
       show(msg, JSON.stringify(res.d, null, 2), res.ok);
     });
   });
@@ -126,7 +143,7 @@
   document.getElementById('r-check').addEventListener('click', function () {
     var msg = document.getElementById('r-msg');
     if (!lastRefundId) { show(msg, 'Немає requestId -- спершу відправ форму', false); return; }
-    get('/.netlify/functions/refund-status?requestId=' + encodeURIComponent(lastRefundId)).then(function (res) {
+    getWithClientRetry('/.netlify/functions/refund-status?requestId=' + encodeURIComponent(lastRefundId), msg).then(function (res) {
       show(msg, JSON.stringify(res.d, null, 2), res.ok);
     });
   });
@@ -152,7 +169,7 @@
   document.getElementById('v-check').addEventListener('click', function () {
     var msg = document.getElementById('v-msg');
     if (!lastVipId) { show(msg, 'Немає workflowId -- спершу Trigger', false); return; }
-    get('/.netlify/functions/vip-status?workflowId=' + encodeURIComponent(lastVipId)).then(function (res) {
+    getWithClientRetry('/.netlify/functions/vip-status?workflowId=' + encodeURIComponent(lastVipId), msg).then(function (res) {
       show(msg, JSON.stringify(res.d, null, 2), res.ok);
     });
   });

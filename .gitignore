@@ -1,3 +1,7 @@
 node_modules/
 .netlify/
 package-lock.json
+
+# Owner Operations цикл: локальні звіти/backup містять реальний PII —
+# ніколи не комітяться. tools/*.py генерують сюди.
+.local/

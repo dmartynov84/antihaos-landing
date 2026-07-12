@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  node-syntax-check:
+    # Ця машина розробки не має локального Node -- єдине місце, де JS
+    # функції реально парсяться `node --check`, це тут. Раніше (до цього
+    # циклу) верифікація йшла лише через деплой+живий curl-тест; це
+    # додає раннє, безкоштовне виявлення синтаксичних помилок ДО деплою.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: node --check on every Netlify Function file
+        run: |
+          set -e
+          find netlify/functions -name '*.js' -print0 | while IFS= read -r -d '' f; do
+            echo "checking $f"
+            node --check "$f"
+          done
+
+  python-audits:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: admin-endpoints / secrets / pii / paid-files / live-flags
+        run: python3 tools/audit_cli.py all
+        # Примітка: check-delivery-manifest.py (повний DELIVERY QA для
+        # PRO/VIP/Starter) живе в сусідньому antyhaos-marketing репо, не
+        # тут -- audit_cli.py paid-files вище перевіряє лише, що жоден
+        # платний файл не потрапив У ЦЕЙ репозиторій, це не заміна
+        # повного delivery QA.

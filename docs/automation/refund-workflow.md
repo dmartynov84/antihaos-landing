@@ -18,7 +18,7 @@ verdict за причиною (§20).
 
 `access_not_received, broken_file, wrong_package, missing_files, material_mismatch, duplicate_payment, changed_mind, other`
 
-## Доступ після refund (O-09 — досі OPEN)
+## Доступ після refund (O-11 — досі OPEN)
 
 Чи відкликати download-токени миттєво, чи дати grace-період — рішення
 власника/юриста. Технічний дефолт (уже реалізований у попередньому

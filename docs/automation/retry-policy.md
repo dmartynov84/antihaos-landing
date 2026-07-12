@@ -47,4 +47,5 @@ Exponential: `60s * 2^(retryCount-1)`, максимум `MAX_RETRIES = 5`
 Цього циклу: `_lib/adapters/email.js#sendOwnerAlert` записує подію в
 sink (не надсилає реальний email — provider не підключено, O-04).
 Поріг "коли справді сповіщати" (кожен retry чи лише dead_letter) —
-рішення для Owner Operations циклу разом із O-11 (канал сповіщень).
+рішення для Owner Operations циклу разом із O-08 (канал сповіщень,
+див. `docs/automation/alert-policy.md`).

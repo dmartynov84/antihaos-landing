@@ -94,7 +94,7 @@
 | Consistency | Eventual, best-effort |
 | Duplicate tolerance | Прийнятно — дубль alert не шкодить (гірше — пропущений) |
 | Idempotency guarantee | Немає — і не потрібна |
-| Live-allowed | Sink-only, provider — O-04 (email) / O-11 (канал) |
+| Live-allowed | Sink-only, provider — O-04 (email) / O-08 (канал) |
 
 ## Daily digest
 
@@ -103,7 +103,7 @@
 | Source of truth | Read-only агрегація з events/projections на момент генерації |
 | Consistency | Знімок "станом на [час генерації]", не транзакційний — якщо подія записана за секунду до генерації й ще не видима через read-lag, вона з'явиться в НАСТУПНОМУ дайджесті, не в цьому |
 | Duplicate tolerance | N/A (read-only, нічого не пишеться) |
-| Live-allowed | Локально, не production-звіт (owner blocker щодо каналу доставки — O-11) |
+| Live-allowed | Локально, не production-звіт (owner blocker щодо каналу доставки — O-08) |
 
 ## Payment / Entitlement / Delivery — BLOCKED
 

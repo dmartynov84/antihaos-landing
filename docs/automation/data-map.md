@@ -2,7 +2,7 @@
 
 Фактичні дані, які система збирає чи зберігає, станом на 2026-07-12.
 Retention-строки НЕ вигадані — де власник/юрист ще не підтвердив строк,
-позначено `OWNER BLOCKER — DATA RETENTION POLICY` (те саме, що O-11 у
+позначено `OWNER BLOCKER — DATA RETENTION POLICY` (те саме, що O-06 у
 `docs/owner-blockers.md`).
 
 | Data | Source | Purpose | Storage | Retention | Access | Delete flow |
@@ -27,7 +27,7 @@ Retention-строки НЕ вигадані — де власник/юрист 
 - `submission-created.js` (Етап 3) записує контакт у mock CRM з полем
   `consentStatus: "not_collected"` — НЕ `"granted"` — саме тому, що
   форми фізично не мають чекбокса згоди. Це не помилка форм, а чесна
-  фіксація реального стану, поки O-06 (email provider) і рішення про
+  фіксація реального стану, поки O-04 (email provider) і рішення про
   double opt-in не закриті.
 - Реальні PRO/VIP/Starter файли клієнтів НЕ проходять через жоден
   Blobs-стор цього циклу — вони взагалі не задеплоєні на Netlify
@@ -43,5 +43,5 @@ email/імені/telegram лідів. Це рішення власника (за
   видаляються автоматично);
 - це прийнятно для sandbox/mock даних, але НЕ прийнятно, коли CRM_MODE
   перейде в `live` з реальними контактами — тому запис у
-  `docs/owner-blockers.md` (O-11) блокує саме `CRM_MODE=live`, не
+  `docs/owner-blockers.md` (O-03) блокує саме `CRM_MODE=live`, не
   поточний mock-режим.

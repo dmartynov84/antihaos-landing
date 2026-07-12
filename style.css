@@ -450,3 +450,14 @@ body.modal-open{overflow:hidden}
 @media(hover:hover) and (pointer:fine){
   .problem.verdict-go:hover,.problem.verdict-fix:hover,.problem.verdict-stop:hover{box-shadow:0 12px 34px rgba(11,35,65,.06);transform:none}
 }
+
+/* RESPONSIVE TYPOGRAPHY цикл: GO/FIX/STOP -- жива Playwright-перевірка на
+   production показала, що "Вихід: рішення GO / FIX / STOP." (пробіли
+   навколо "/") ламався рівно після "GO /" у 5-колонковій сітці .steps на
+   ~1024px (саме над 980px breakpoint) -- "GO /" лишався на одному рядку,
+   "FIX / STOP." сиротою на іншому. Слеш "/" сам по собі є break-опорою за
+   Unicode line-breaking (UAX#14, клас SY), тому нормалізація пробілів
+   сама по собі не гарантує захисту на всіх ширинах -- .nowrap-token
+   структурно забороняє розрив усередині токена, лишаючи текст навколо
+   нього звичайним переносом. */
+.nowrap-token{white-space:nowrap}

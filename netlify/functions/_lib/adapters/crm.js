@@ -4,15 +4,18 @@
 // (набір експортованих функцій) лишається той самий.
 // Dedup — за normalized email (lowercase, trim), не за raw input.
 //
-// ВІДОМЕ ОБМЕЖЕННЯ (знайдено при верифікації, не виправлено цього циклу):
-// upsertContact/updateLeadStage/addTag/addNote/createTask усі роблять
-// звичайний get-потім-set, без onlyIfMatch/ETag. Два майже одночасних
-// виклики для того самого email можуть перезаписати одне одного (той,
-// хто записав останнім, "виграє", навіть якщо мав старіші дані). Для
-// lead-стадії (несуттєве поле) це прийнятний ризик; якщо ця логіка
-// пізніше використовуватиметься для чогось з реальними грошовими
-// наслідками — портувати на onlyIfMatch за зразком markEventOnce
-// у _lib/store.js (checkout-контур), де конфлікт саме тому не race-ить.
+// AUTOMATION OPERATIONS цикл: race condition, знайдена минулого циклу
+// (get-потім-set без onlyIfMatch у upsertContact/updateLeadStage),
+// вирішена архітектурно, не патчем -- lead-write-шлях (submission-
+// created.js) тепер пише через _lib/events.js (immutable events) +
+// _lib/projections.js (перебудовуваний кеш), а не через ці функції.
+// normalizeEmail/findByEmail лишаються в ужитку. upsertContact/
+// updateLeadStage/addTag/addNote/createTask лишаються реалізованими
+// (не видалені) для майбутніх адмін-ініційованих дій нижчого ризику
+// (наприклад, ручне тегування контакту), але вже НЕ є write-шляхом для
+// lead-подій -- якщо колись знадобляться для чогось із реальними
+// грошовими наслідками, той самий onlyIfMatch-підхід із
+// _lib/store.js/_lib/events.js застосовний і тут.
 "use strict";
 
 const { getStore } = require("@netlify/blobs");

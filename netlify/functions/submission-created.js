@@ -1,17 +1,21 @@
 // Нативний Netlify hook: викликається АВТОМАТИЧНО при кожному form
-// submission на сайті (файл має називатись рівно "submission-created" —
-// це не довільна назва). Не змінює й не замінює існуючий flow форм
-// (index.html + js/form-submit.js вже працюють і перевірені раніше,
-// LEAD-2) — лише додає mock CRM upsert + email-sink подію + структурований
-// лог ПОВЕРХ того, що вже відбувається. Якщо ця функція впаде — сама
-// форма вже успішно прийнята Netlify Forms до виклику цього hook,
-// користувач НІКОЛИ не бачить наслідків збою тут.
+// submission (файл має називатись рівно "submission-created"). Нуль змін
+// у існуючих формах/js/form-submit.js.
+//
+// Netlify's platform event handlers "run in the background; no response
+// is delivered to a client" (підтверджено пошуком офіційної документації
+// цього циклу) -- відповідний HTTP-код НЕ впливає на платформний retry
+// форми, і взагалі немає client, який його чекає. Тому durable-запис
+// (appendEvent) відбувається ПЕРШИМ, до будь-якої спроби downstream-
+// обробки -- lead ніколи не губиться, навіть якщо CRM projection впаде.
 "use strict";
 
 const { newCorrelationId } = require("./_lib/ids");
 const { log } = require("./_lib/logger");
-const crm = require("./_lib/adapters/crm");
-const email = require("./_lib/adapters/email");
+const { normalizeEmail } = require("./_lib/adapters/crm");
+const { appendEvent, sha256 } = require("./_lib/events");
+const { createWorkflowStatus, markProcessing, markCompleted, markFailure } = require("./_lib/workflow-status");
+const { processLeadEvent } = require("./_lib/lead-processor");
 const { getAutomationModes } = require("./_lib/automation-mode");
 const { withBlobs } = require("./_lib/with-blobs");
 
@@ -30,7 +34,7 @@ exports.handler = withBlobs(async (event) => {
   try {
     payload = JSON.parse(event.body || "{}").payload;
   } catch (e) {
-    log({ event: "lead_submission_parse_error", correlationId, status: "failed", reasonCode: "invalid_json" });
+    log({ event: "lead_submission_parse_error", correlationId, status: "failed", reasonCode: "invalid_input" });
     return { statusCode: 200, body: "" };
   }
 
@@ -40,18 +44,37 @@ exports.handler = withBlobs(async (event) => {
   }
 
   const data = payload.data || {};
-  const emailAddr = data.email;
-
-  if (!emailAddr || !String(emailAddr).includes("@")) {
-    log({ event: "lead_submission_invalid_email", correlationId, status: "failed", reasonCode: "invalid_email", data: { formName: payload.form_name } });
+  const rawEmail = data.email;
+  if (!rawEmail || !String(rawEmail).includes("@")) {
+    log({ event: "lead_submission_invalid_email", correlationId, status: "failed", reasonCode: "invalid_input", data: { formName: payload.form_name } });
     return { statusCode: 200, body: "" };
   }
+  const email = normalizeEmail(rawEmail);
 
-  try {
-    const { contact, wasNew } = await crm.upsertContact({
-      email: emailAddr,
+  // Детермінований ключ -- точний платформний retry ТІЄЇ САМОЇ Netlify
+  // submission (якщо такий колись станеться) дедублюється на рівні
+  // сховища, а не на нашій довірі до Netlify.
+  const idempotencyKey = sha256(`${payload.form_name}|${email}|${payload.created_at || ""}`);
+  const workflowId = `lead:${idempotencyKey}`;
+
+  // КРОК 1 -- durable acceptance. Навмисно БЕЗ try/catch: якщо сам
+  // durable-шар недоступний (Blobs повністю не відповідає), виняток
+  // пролітає природно у Netlify function logs (видимо для власника) --
+  // єдиний сценарій, де lead справді може не зберегтись. Це не впливає
+  // на реального відвідувача форми (він уже отримав /thanks до виклику
+  // цього hook), тому проковтувати цю помилку тут немає сенсу.
+  const { event: leadEvent, wasNew } = await appendEvent({
+    eventType: "lead_submitted",
+    entityType: "contact",
+    entityId: email,
+    workflowId,
+    correlationId,
+    idempotencyKey,
+    source: payload.form_name,
+    payload: {
       name: data.name || null,
       source: payload.form_name,
+      formName: payload.form_name,
       utm: {
         source: data.utm_source || null,
         medium: data.utm_medium || null,
@@ -60,44 +83,48 @@ exports.handler = withBlobs(async (event) => {
         referrer: data.referrer || null,
       },
       interestedProduct: data.product_type || null,
-      // Немає чекбокса маркетингової згоди на жодній формі зараз (O-15) —
-      // явно фіксуємо "not_collected", НЕ "granted". Не вигадувати згоду.
-      consentStatus: "not_collected",
-      // stage навмисно не передається: upsertContact сам ставить "new"
-      // для щойно створеного контакту й НЕ чіпає stage для існуючого.
-    });
+    },
+  });
 
-    if (wasNew) {
-      await crm.updateLeadStage(emailAddr, "validated");
-    }
-
-    await email.sendTransactional("lead_magnet_checklist", emailAddr, {
-      name: data.name || null,
-      formName: payload.form_name,
-      correlationId,
-    });
-
-    log({
-      event: wasNew ? "lead_created" : "lead_duplicate_submission",
-      correlationId,
-      workflowId: "lead-intake",
-      entityId: contact.id,
-      status: "ok",
-      data: { formName: payload.form_name, source: contact.source, email: emailAddr },
-    });
-
-    return { statusCode: 200, body: "" };
-  } catch (err) {
-    log({
-      event: "lead_submission_error",
-      correlationId,
-      workflowId: "lead-intake",
-      status: "failed",
-      reasonCode: "unhandled_exception",
-      data: { message: String(err && err.message) },
-    });
-    // Не кидаємо далі — Netlify вже прийняв форму, користувач не має
-    // побачити наслідків внутрішнього збою автоматизації.
+  if (!wasNew) {
+    log({ event: "lead_event_already_accepted", correlationId, workflowId, entityId: email, status: "ok", reasonCode: "duplicate_event" });
     return { statusCode: 200, body: "" };
   }
+
+  log({ event: "lead_event_accepted", correlationId, workflowId, entityId: email, status: "accepted" });
+  await createWorkflowStatus(workflowId, { entityType: "contact", entityId: email, eventType: "lead_submitted" });
+  await markProcessing(workflowId);
+
+  // КРОК 2 -- downstream projection/notification. Збій ТУТ більше не
+  // означає втрату ліда -- подія вже durable з кроку 1. Статус
+  // workflow переходить у retry_scheduled/dead_letter, не "completed".
+  try {
+    const { isNewContact } = await processLeadEvent(leadEvent);
+    await markCompleted(workflowId);
+    log({
+      event: isNewContact ? "lead_projection_updated" : "lead_projection_duplicate",
+      correlationId, workflowId, entityId: email, status: "completed",
+    });
+  } catch (err) {
+    const reasonCode = classifyError(err);
+    const result = await markFailure(workflowId, reasonCode);
+    log({
+      event: "lead_projection_failed",
+      correlationId, workflowId, entityId: email,
+      status: result ? result.status : "failed",
+      reasonCode,
+      data: { message: String(err && err.message) },
+    });
+  }
+
+  // Netlify не читає цю відповідь як "client result" для platform event
+  // handlers -- 200 тут стосується лише нашого власного HTTP-контракту
+  // (curl-тестованість), не є твердженням "усе довершено успішно".
+  return { statusCode: 200, body: "" };
 });
+
+function classifyError(err) {
+  const message = String(err && err.message || "").toLowerCase();
+  if (message.includes("blob") || message.includes("timeout")) return "blob_temporary_failure";
+  return "storage_temporary_failure";
+}

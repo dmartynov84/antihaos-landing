@@ -18,6 +18,12 @@
 | `vip-trigger` | ✅ (order) / ❌ (test) | частково | email (input) | order validation / X-Admin-Token для test-шляху | Створює workflow |
 | `vip-intake` | ✅ (з workflowId) | — | intake-дані (input) | possession of random UUID workflowId + state machine gate | Записує intake |
 | `vip-status` | ✅ (з workflowId) | — | немає email у відповіді | possession of random UUID workflowId | Читає |
+| `ops-report-data` | ❌ | ✅ | немає (лічильники, не email/payload) | X-Admin-Token | Читає, PII-minimal агрегат |
+| `ops-duplicates` | ❌ | ✅ | опосередковано (entityId у кандидатах) | X-Admin-Token | GET читає / POST записує decision-метадану (не events) |
+| `ops-dead-letter` | ❌ | ✅ | опосередковано (через event history в inspect) | X-Admin-Token | GET list/inspect читає / POST cancel записує стан |
+| `ops-projections-audit` | ❌ | ✅ | опосередковано (email у results) | X-Admin-Token | GET check читає / POST rebuild перебудовує кеш (не events) |
+| `ops-events-export` | ❌ | ✅ | **повний payload, реальний PII** (навмисно — для backup) | X-Admin-Token | Читає, повний export одного entityType |
+| `ops-events-restore` | ❌ | ✅ | повний payload (з backup-файлу) | X-Admin-Token | Пише ЛИШЕ в ізольований `automation-events-restore-drill` стор (hardcoded, не production) |
 
 ## Правила, застосовані послідовно
 
@@ -32,3 +38,13 @@
 - **Debug endpoints, яких більше немає**: старий `crm-lookup` без auth
   (виправлено, див. `docs/automation/process-map.md` і commit
   `4603e5c`).
+- **Dry-run за замовчуванням для side-effect дій**: `replay-workflow`
+  з цього циклу вимагає `execute:true` явно в тілі запиту — без нього
+  ЛИШЕ читає й прогнозує, жодного `appendEvent`/email/mutation
+  (OWNER OPERATIONS FINAL HARDENING цикл, знайдено як реальний gap
+  проти власної вимоги контуру "dry-run за замовчуванням").
+- **`ops-*` endpoints ще не верифіковані живим тестом бізнес-логіки** —
+  `ADMIN_TOKEN` не встановлено на Netlify (O-06), усі 8 fail-closed
+  верифіковано (503/405), жоден не протестований authenticated живим
+  запитом. Задокументовано в кожному відповідному runbook
+  (`docs/runbooks/`), не приховано.

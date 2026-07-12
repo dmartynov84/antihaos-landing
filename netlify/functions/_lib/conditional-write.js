@@ -8,28 +8,30 @@
 // SECOND finding from the same adversarial round: store.get(exactKey)
 // can return null for a key that store.list({prefix}) already confirms
 // exists — a cross-invocation read lag on point-reads specifically.
-// OWNER OPERATIONS цикл, root cause: Netlify Blobs default reads are
-// EVENTUALLY consistent — official docs state updates/writes propagate
-// to edge caches within up to 60s (our empirical worst case last cycle,
-// ~15-20s, was within that documented window, not an undocumented bug —
-// we just hadn't re-checked docs against production before). Netlify's
-// SDK exposes a real fix: `{ consistency: "strong" }` on `get()`
-// routes the read through Netlify's API instead of the edge cache, at
-// the cost of higher read latency. Applied below for exactly the paths
-// where correctness (not raw speed) matters: dedup checks and any
-// point-read of a key that may have just been written by another
-// invocation. The retry loop is KEPT as defense-in-depth (docs have
-// been wrong before this cycle too — see setJSON above), not removed,
-// but strong consistency is now the primary fix, not blind retrying.
+// OWNER OPERATIONS цикл: офіційна документація каже, що це — задокументований
+// eventual-consistency trade-off (edge-кеш, до 60с), і що `{consistency:
+// "strong"}` на read має його усунути. ПЕРЕВІРЕНО живим тестом на
+// production і ВІДХИЛЕНО: `consistency:"strong"` кинув
+// `BlobsConsistencyError: ... has not been configured with a
+// 'uncachedEdgeURL' property` — саме в цьому Lambda-compatibility
+// runtime (connectLambda-injected credentials, `_lib/with-blobs.js`),
+// а не в звичайному Netlify Functions v2/Edge контексті, який
+// документація малась на увазі. ТРЕТЯ підряд розбіжність docs-vs-
+// production цього напрямку — задокументовано в ADR
+// (docs/adr/ADR-automation-storage-consistency.md), consistency:"strong"
+// НЕ використовується ніде в цьому кодовому шляху. Повернуто до
+// retry-based mitigation (8×500ms ~4s), що вже перевірено й прийнято
+// цього циклу як чесний, working-in-practice підхід, доповнений
+// client-side polling там, де це видно користувачу.
 "use strict";
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function getWithRetry(store, key, { attempts = 3, delayMs = 400, consistency = "strong" } = {}) {
+async function getWithRetry(store, key, { attempts = 8, delayMs = 500 } = {}) {
   for (let i = 0; i < attempts; i++) {
-    const value = await store.get(key, { type: "json", consistency });
+    const value = await store.get(key, { type: "json" });
     if (value !== null && value !== undefined) return value;
     if (i < attempts - 1) await sleep(delayMs);
   }
@@ -45,7 +47,7 @@ async function getWithRetry(store, key, { attempts = 3, delayMs = 400, consisten
 // gated off entirely right now). Uses getWithRetry for the existence
 // check specifically because of the read-lag finding above.
 async function setIfAbsent(store, key, value) {
-  const existing = await getWithRetry(store, key, { attempts: 2, delayMs: 300, consistency: "strong" });
+  const existing = await getWithRetry(store, key, { attempts: 4, delayMs: 400 });
   if (existing) return { modified: false, value: existing };
   await store.setJSON(key, value);
   return { modified: true, value };

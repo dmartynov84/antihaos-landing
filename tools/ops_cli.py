@@ -118,9 +118,41 @@ def cmd_backup(args):
 def cmd_restore_drill(args):
     """Відновлює JSONL-файл з backup у ІЗОЛЬОВАНИЙ restore-drill стор
     (ops-events-restore.js -- store name захардкожений на бекенді, НЕ
-    параметр, ніколи не production automation-events)."""
+    параметр, ніколи не production automation-events).
+
+    FAIL CLOSED: перед будь-яким POST перевіряє checksum і eventCount
+    проти manifest.json у тій самій директорії. Без --skip-checksum-
+    verification (навмисно незручний прапорець, не дефолт) розбіжність
+    ЗУПИНЯЄ відновлення до мережевого виклику -- не просто попереджає
+    постфактум. Знайдено як реальний gap цього циклу: попередня версія
+    відновлювала файл без жодної звірки з manifest узагалі."""
     if not args.file:
         sys.exit("--file обов'язковий (шлях до .jsonl з tools/ops_cli.py backup)")
+    if not os.path.isfile(args.file):
+        sys.exit(f"{args.file}: файл не знайдено")
+
+    file_dir = os.path.dirname(os.path.abspath(args.file))
+    file_name = os.path.basename(args.file)
+    manifest_path = os.path.join(file_dir, "manifest.json")
+
+    if not args.skip_checksum_verification:
+        if not os.path.isfile(manifest_path):
+            sys.exit(f"FAIL CLOSED: manifest.json не знайдено поруч із {file_name} ({manifest_path}). "
+                      f"Без manifest неможливо перевірити цілісність backup -- відновлення зупинено.")
+        with open(manifest_path, encoding="utf-8") as f:
+            manifest = json.load(f)
+        entry = next((e for e in manifest.get("files", []) if e.get("file") == file_name), None)
+        if not entry:
+            sys.exit(f"FAIL CLOSED: manifest.json не містить запису для {file_name}. Відновлення зупинено.")
+
+        actual_checksum = hashlib.sha256(open(args.file, "rb").read()).hexdigest()
+        if actual_checksum != entry.get("sha256"):
+            sys.exit(f"FAIL CLOSED: checksum НЕ збігається для {file_name}.\n"
+                      f"  Очікувано (manifest): {entry.get('sha256')}\n"
+                      f"  Фактично:              {actual_checksum}\n"
+                      f"Файл пошкоджено або підмінено з моменту backup. Відновлення зупинено.")
+        print(f"Checksum OK ({file_name}): {actual_checksum}")
+
     events = []
     with open(args.file, encoding="utf-8") as f:
         for line in f:
@@ -129,6 +161,11 @@ def cmd_restore_drill(args):
                 events.append(json.loads(line))
     if not events:
         sys.exit(f"{args.file}: 0 подій, нічого відновлювати")
+
+    if not args.skip_checksum_verification and entry.get("eventCount") != len(events):
+        sys.exit(f"FAIL CLOSED: кількість подій не збігається з manifest "
+                  f"(очікувано {entry.get('eventCount')}, знайдено {len(events)}). Відновлення зупинено.")
+
     status, data = call("POST", "/.netlify/functions/ops-events-restore", {"events": events})
     print(json.dumps(data, ensure_ascii=False, indent=2))
     if status != 200:
@@ -159,7 +196,11 @@ def cmd_dead_letter(args):
     elif args.action == "replay":
         if not args.workflow_id:
             sys.exit("--workflow-id обов'язковий для replay")
-        status, data = call("POST", "/.netlify/functions/replay-workflow", {"workflowId": args.workflow_id})
+        if not args.execute:
+            print("DRY-RUN (за замовчуванням). Додайте --execute для реального replay.\n")
+        status, data = call("POST", "/.netlify/functions/replay-workflow", {
+            "workflowId": args.workflow_id, "execute": bool(args.execute),
+        })
         print(json.dumps(data, ensure_ascii=False, indent=2))
     else:
         sys.exit(f"невідома дія: {args.action}")
@@ -216,6 +257,8 @@ def build_parser():
 
     rd = sub.add_parser("restore-drill", help="Відновити JSONL-файл у ІЗОЛЬОВАНИЙ restore-drill стор (ніколи не production)")
     rd.add_argument("--file", help="шлях до .jsonl з tools/ops_cli.py backup")
+    rd.add_argument("--skip-checksum-verification", action="store_true",
+                     help="НЕБЕЗПЕЧНО: пропустити перевірку checksum/eventCount проти manifest.json. Не використовувати без причини.")
     rd.set_defaults(func=cmd_restore_drill)
 
     rv = sub.add_parser("restore-verify", help="Перевірити вміст restore-drill стору")
@@ -225,6 +268,7 @@ def build_parser():
     dl.add_argument("action", choices=["list", "inspect", "replay", "cancel"])
     dl.add_argument("--workflow-id")
     dl.add_argument("--reason-code")
+    dl.add_argument("--execute", action="store_true", help="replay: реально виконати (без цього -- dry-run)")
     dl.set_defaults(func=cmd_dead_letter)
 
     du = sub.add_parser("duplicates", help="list/decide")

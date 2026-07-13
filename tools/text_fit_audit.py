@@ -120,6 +120,34 @@ def audit_page(page, page_name, path, viewport_name, width, height, screenshot=T
 
     return result
 
+# Регресійна перевірка для step-modal (index.html): step-modal.js
+# копіює .step-outcome через .textContent, що ЗРИВАЄ .nowrap-token
+# span (Council-рішення §26, Варіант A: modal лишається без коду-змін,
+# бо живо виміряно -- 460px max-width, scrollWidth===clientWidth на
+# найвужчому тестованому viewport -- АЛЕ рішення вимагає постійного
+# regression test, не одноразової ручної перевірки; це він).
+MODAL_TEST_VIEWPORTS = [("320x568", 320, 568), ("360x800", 360, 800), ("375x812", 375, 812)]
+
+def audit_step_modal(page):
+    problems = []
+    for viewport_name, w, h in MODAL_TEST_VIEWPORTS:
+        page.set_viewport_size({"width": w, "height": h})
+        page.goto(f"{BASE_URL}/", wait_until="networkidle")
+        for step_num in range(1, 6):
+            page.click(f"#step-trigger-{step_num}")
+            page.wait_for_timeout(300)
+            for sel in [".step-modal-outcome", ".step-modal-summary", ".step-modal-detail"]:
+                el = page.query_selector(sel)
+                if not el:
+                    continue
+                scrollw = el.evaluate("e => e.scrollWidth")
+                clientw = el.evaluate("e => e.clientWidth")
+                if scrollw > clientw + 1:
+                    problems.append({"viewport": viewport_name, "step": step_num, "selector": sel, "scrollWidth": scrollw, "clientWidth": clientw})
+            page.click(".step-modal-close")
+            page.wait_for_timeout(200)
+    return problems
+
 def main():
     only_pages = sys.argv[1].split(",") if len(sys.argv) > 1 else None
     only_viewports = sys.argv[2].split(",") if len(sys.argv) > 2 else None
@@ -146,6 +174,18 @@ def main():
                     findings.append({"page": page_name, "viewport": viewport_name, **result})
                 else:
                     print(f"[OK] {page_name} @ {viewport_name}")
+
+        if not only_pages or "index" in only_pages:
+            print("\n--- step-modal regression check (Council §26, Variant A) ---")
+            modal_problems = audit_step_modal(page)
+            if modal_problems:
+                print(f"[ISSUE] step-modal: {len(modal_problems)} overflow(s) found")
+                for p_ in modal_problems:
+                    print(f"    {p_}")
+                findings.append({"page": "index", "viewport": "step-modal", "elements": modal_problems})
+            else:
+                print("[OK] step-modal: no overflow across all steps x narrow viewports")
+
         browser.close()
 
     os.makedirs(OUT_DIR, exist_ok=True)

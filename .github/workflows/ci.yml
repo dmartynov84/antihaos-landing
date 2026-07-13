@@ -99,3 +99,7 @@ jobs:
         # тут -- audit_cli.py paid-files вище перевіряє лише, що жоден
         # платний файл не потрапив У ЦЕЙ репозиторій, це не заміна
         # повного delivery QA.
+      - name: data-integrity fixture self-test (schema/duplicate/consent/financial invariants)
+        run: python3 tools/data_integrity_cli.py self-test
+      - name: privacy vs live config consistency (DATA TRUTH цикл §22)
+        run: python3 tools/data_integrity_cli.py data-flow-vs-privacy

@@ -1,0 +1,1 @@
+{"event_id":"e1","event_type":"contact_created","schema_version":1,"entity_type":"contact","entity_id":"qa-integrity-5@example.com","idempotency_key":"contact_created","timestamp":"2026-07-13T10:00:00.000Z","source":"lead-checklist","status":"accepted","payload":{"name":"QA Test","consentStatus":"not_collected","marketingConsentStatus":"granted"}}

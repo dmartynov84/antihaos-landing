@@ -16,6 +16,7 @@ const { fingerprint, STATES } = require("../duplicate-reconciliation");
 const { sha256, idemKey, SCHEMA_VERSION } = require("../events");
 const { isValidClientRequestId } = require("../request-dedup");
 const { projectContact } = require("../projections");
+const { isAmountMatching, isRefundAmountValid } = require("../webhook-processor");
 
 // ---------- vip-state-machine ----------
 
@@ -213,4 +214,31 @@ test("projections: projectContact is order-independent of array order IF pre-sor
   ];
   const contact = projectContact(sorted);
   assert.equal(contact.stage, "customer");
+});
+
+// ---------- webhook-processor: payment invariants (DATA TRUTH цикл) ----------
+// CHECKOUT_MODE=disabled на production -- ці invariants не можна
+// live-протестувати цього циклу. node:test у CI -- єдина реальна
+// перевірка, не лише код-рев'ю.
+
+test("webhook-processor: isAmountMatching accepts exact match, rejects mismatch", () => {
+  assert.equal(isAmountMatching(1490, 1490), true);
+  assert.equal(isAmountMatching(1490, 4900), false);
+});
+
+test("webhook-processor: isAmountMatching coerces numeric strings (provider may send either)", () => {
+  assert.equal(isAmountMatching("1490", 1490), true);
+});
+
+test("webhook-processor: isRefundAmountValid allows missing refund amount (not all providers send it)", () => {
+  assert.equal(isRefundAmountValid(undefined, 1490), true);
+});
+
+test("webhook-processor: isRefundAmountValid rejects refund exceeding captured gross", () => {
+  assert.equal(isRefundAmountValid(2000, 1490), false);
+});
+
+test("webhook-processor: isRefundAmountValid allows partial or exact refund", () => {
+  assert.equal(isRefundAmountValid(1490, 1490), true);
+  assert.equal(isRefundAmountValid(500, 1490), true);
 });

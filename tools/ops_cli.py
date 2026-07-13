@@ -242,6 +242,56 @@ def cmd_projections(args):
     else:
         sys.exit(f"невідома дія: {args.action}")
 
+# ---------- reconcile-data (§18) ----------
+# compute_reconciliation_verdict() -- чиста функція, тестована окремо
+# від мережевого виклику (tools/__tests__/test_reconcile.py), бо сам
+# reconcile не можна live-протестувати цього циклу (ADMIN_TOKEN).
+
+def compute_reconciliation_verdict(projections_summary, report_data):
+    """projections_summary: {"in_sync":N,"drift_detected":N,"unknown_schema_version":N}
+    report_data: {"deadLetterCount":N,"staleCount":N,"duplicateCandidateCounts":{...}}
+    Повертає (verdict, reasons) -- verdict в {HEALTHY,DEGRADED,FAILED}."""
+    reasons = []
+    unknown_schema = projections_summary.get("unknown_schema_version", 0)
+    drift = projections_summary.get("drift_detected", 0)
+    dead_letter = report_data.get("deadLetterCount", 0)
+    stale = report_data.get("staleCount", 0)
+    duplicates = sum(report_data.get("duplicateCandidateCounts", {}).values())
+
+    if unknown_schema > 0:
+        reasons.append(f"{unknown_schema} projection(s) with unknown schema_version -- fail loud, not silently assumed")
+    if dead_letter > 0:
+        reasons.append(f"{dead_letter} workflow(s) in dead_letter")
+
+    if reasons:
+        return "FAILED", reasons
+
+    if drift > 0:
+        reasons.append(f"{drift} projection(s) drift_detected (recoverable via rebuild)")
+    if stale > 0:
+        reasons.append(f"{stale} technically stale workflow(s)")
+    if duplicates > 0:
+        reasons.append(f"{duplicates} suspected duplicate(s) awaiting review")
+
+    if reasons:
+        return "DEGRADED", reasons
+    return "HEALTHY", []
+
+def cmd_reconcile(args):
+    status1, projections = call("GET", "/.netlify/functions/ops-projections-audit?action=check")
+    status2, report = call("GET", "/.netlify/functions/ops-report-data")
+    if status1 != 200 or status2 != 200:
+        print(json.dumps({"verdict": "UNKNOWN", "reason": "one or both source endpoints unreachable", "projections_status": status1, "report_status": status2}, ensure_ascii=False, indent=2))
+        sys.exit(1)
+    verdict, reasons = compute_reconciliation_verdict(projections.get("summary", {}), report)
+    result = {"verdict": verdict, "reasons": reasons, "generatedAt": report.get("generatedAt")}
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    if verdict == "FAILED":
+        print("\nFAILED -- не будувати бізнес/фінансовий звіт на цих даних (§18).", file=sys.stderr)
+        sys.exit(2)
+    if verdict == "DEGRADED":
+        sys.exit(1)
+
 def build_parser():
     import argparse
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -285,6 +335,9 @@ def build_parser():
     pr.add_argument("action", choices=["check", "rebuild", "rebuild-all"])
     pr.add_argument("--email")
     pr.set_defaults(func=cmd_projections)
+
+    rc = sub.add_parser("reconcile", help="Read-only reconciliation verdict: HEALTHY/DEGRADED/FAILED (§18)")
+    rc.set_defaults(func=cmd_reconcile)
 
     return p
 

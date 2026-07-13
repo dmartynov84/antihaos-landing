@@ -204,9 +204,9 @@ test("projections: projectContact returns null when contact_created never happen
 });
 
 test("projections: projectContact is order-independent of array order IF pre-sorted by timestamp (fold assumes sorted input)", () => {
-  // listEvents() sorts by timestamp before calling projectContact -- this
-  // test documents that assumption explicitly, since projectContact
-  // itself does NOT re-sort.
+  // listEvents() сортує за timestamp перед викликом projectContact -- цей
+  // тест явно документує це припущення, бо сам projectContact НЕ
+  // пересортовує вхідний масив.
   const sorted = [
     { event_type: "contact_created", entity_id: "a@example.com", event_id: "e1", timestamp: "2026-01-01T00:00:00Z", payload: {} },
     { event_type: "lead_stage_changed", entity_id: "a@example.com", event_id: "e2", timestamp: "2026-01-01T00:01:00Z", payload: { stage: "validated" } },

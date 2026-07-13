@@ -5,3 +5,7 @@ package-lock.json
 # Owner Operations цикл: локальні звіти/backup містять реальний PII —
 # ніколи не комітяться. tools/*.py генерують сюди.
 .local/
+
+# Python bytecode cache -- не код, ніколи не комітиться.
+__pycache__/
+*.pyc
